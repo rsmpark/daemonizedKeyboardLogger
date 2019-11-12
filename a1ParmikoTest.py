@@ -2,6 +2,7 @@
 
 import paramiko
 import socket
+import os
 
 
 class sshClient(object):
@@ -91,6 +92,11 @@ class sshClient(object):
 
 # main thread
 if __name__ == '__main__':
-    sshClient = sshClient("debian10vm", 22, "lab", "lab")
-    sshClient.executeCommand('touch testSSH')
-    pass
+    sshClient = sshClient("matrix", 22, "smpark7", "Spring3!")
+    dir_path = os.path.realpath("config_file")
+    print(dir_path)
+
+    sshClient.executeCommand('pwd')
+    sshClient.uploadFile(dir_path, "/home/smpark7/zzzz")
+    sshClient.downloadFile("/home/smpark7/zzzz",
+                           "/home/lab/bin/py/project/destinations")
