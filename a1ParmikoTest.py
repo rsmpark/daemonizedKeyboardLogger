@@ -23,6 +23,7 @@ class sshClient(object):
             self.SSHClient = paramiko.SSHClient()
             self.SSHClient.set_missing_host_key_policy(
                 paramiko.AutoAddPolicy())
+
             self.SSHClient.connect(hostname=self.hostName,  port=self.portNumber,
                                    username=self.userName,  password=self.passWord)
             print('SSH Connection Established . . .')
@@ -92,11 +93,12 @@ class sshClient(object):
 
 # main thread
 if __name__ == '__main__':
-    sshClient = sshClient("matrix", 22, "smpark7", "Spring3!")
-    dir_path = os.path.realpath("config_file")
-    print(dir_path)
+    # pkey = os.path.realpath("tester")
+    sshClient = sshClient("LAPTOP-PQ0L8NS1", 22, "smpar", "park-sang")
+    # dir_path = os.path.realpath("config_file")
+    # print(dir_path)
 
     sshClient.executeCommand('pwd')
-    sshClient.uploadFile(dir_path, "/home/smpark7/zzzz")
-    sshClient.downloadFile("/home/smpark7/zzzz",
-                           "/home/lab/bin/py/project/destinations")
+    # sshClient.uploadFile(dir_path, "/home/smpark7/zzzz")
+    # sshClient.downloadFile("/home/smpark7/zzzz",
+    #                        "/home/lab/bin/py/project/destinations")
