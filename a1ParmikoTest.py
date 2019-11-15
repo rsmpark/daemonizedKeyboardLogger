@@ -94,7 +94,7 @@ class sshClient(object):
 # main thread
 if __name__ == '__main__':
     # pkey = os.path.realpath("tester")
-    sshClient = sshClient("LAPTOP-PQ0L8NS1", 22, "smpar", "park-sang")
+    sshClient = sshClient("matrix.senecac.on.ca", 22, "", "")
     # dir_path = os.path.realpath("config_file")
     # print(dir_path)
 
