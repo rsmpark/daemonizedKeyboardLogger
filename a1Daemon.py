@@ -26,7 +26,7 @@ class SSHClient(object):
     # make a connection to a remote SSH server
     def makeSSHConnection(self):
         try:
-            print("Establishing ssh connection")
+            logger.info("Establishing ssh connection")
             # create a client instance, auto generate a key
             # and attempt to connect to a host
             self.SSHClient = paramiko.SSHClient()
@@ -35,16 +35,16 @@ class SSHClient(object):
 
             self.SSHClient.connect(hostname=self.hostName,  port=self.portNumber,
                                    username=self.userName,  password=self.passWord)
-            print('SSH Connection Established . . .')
+            logger.info('SSH Connection Established . . .')
             # handle errors
         except paramiko.AuthenticationException as authErr:
-            print('Authentication failed:',  authErr)
+            logger.error('Authentication failed:',  authErr)
         except paramiko.SSHException as sshErr:
-            print('SSH connection failed:',  sshErr)
+            logger.error('SSH connection failed:',  sshErr)
         except socket.timeout as toutErr:
-            print('Connection timed out:',  toutErr)
+            logger.error('Connection timed out:',  toutErr)
         except Exception as err:
-            print('Exception has ocurred:',  err)
+            logger.error('Exception has ocurred:',  err)
             self.SSHClient.close()
 
     # executes a command on a remote host
@@ -56,19 +56,20 @@ class SSHClient(object):
             # execute a command remotely
             stdin,  stdout,  stderr = self.SSHClient.exec_command(command,
                                                                   timeout=10)
-            print(f"command STDOUT: {str(stdout.read())}")
+            logger.info(f"command STDOUT: {str(stdout.read())}")
             if stderr:
-                print(f"command STDERR: {str(stderr.read())}")
+                logger.error("command STDERR: {str(stderr.read())}")
             self.SSHClient.close()
+            logger.info("Command executed successfully!")
             # handle errors
         except paramiko.SSHException as sshErr:
-            print('Command execution failed:',  sshErr)
+            logger.error(sshErr)
             self.SSHClient.close()
         except socket.timeout as toutErr:
-            print('Command timed out:',  toutErr)
+            logger.error(toutErr)
             self.SSHClient.close()
         except Exception as err:
-            print('Exception has ocurred:',  err)
+            logger.error(err)
             self.SSHClient.close()
 
     # upload a file via the SSH tunnel to remote server via SFTP
@@ -79,23 +80,29 @@ class SSHClient(object):
             # create an SFTP tunnel
             SFTPInstance = self.SSHClient.open_sftp()
             SFTPInstance.put(localPath,  remotePath)
+            SFTPInstance.close()
+            self.SSHClient.close()
+            logger.info('File Successfully Uploaded!')
             # handle errors
         except Exception as err:
-            print('Exception has ocurred:',  err)
+            logger.error(err)
             SFTPInstance.close()
             self.SSHClient.close()
 
     # download a file via the SSH tunnel from remote server via SFTP
-    def downloadFile(self,  localPath,  remotePath):
+    def downloadFile(self,  remotePath,  localPath):
         try:
             # connect to SSH server
             self.makeSSHConnection()
             # create an SFTP tunnel
             SFTPInstance = self.SSHClient.open_sftp()
-            SFTPInstance.get(localPath,  remotePath)
+            SFTPInstance.get(remotePath,  localPath)
+            SFTPInstance.close()
+            self.SSHClient.close()
+            logger.info('File Successfully Downloaded!')
             # handle errors
         except Exception as err:
-            print('Exception has ocurred:',  err)
+            logger.error(err)
             SFTPInstance.close()
             self.SSHClient.close()
 
@@ -285,6 +292,9 @@ def daemonExecutionLoop(ipAddress,  socketNumber,  requestQueueSize,  pidFile,  
         if pid == 0: 
             daemonSocket.close()
             logger.info(connectionSocket.recv(1024).decode())
+            sshClient = SSHClient('matrix.senecac.on.ca',  22,  'USERNAME',  'PASSWORD')
+            sshClient.executeCommand('pwd')
+            sshClient.downloadFile('/etc/passwd',  '/home/lab/bin/py/Assignment/passwords')
             connectionSocket.sendall('Hello from the daemon side!'.encode())
             connectionSocket.close()
             os._exit(0)
