@@ -90,11 +90,15 @@ class sshClient(object):
             SFTPInstance.close()
             self.SSHClient.close()
 
+    def envokeShell(self):
+        chan = self.SSHClient.invoke_shell()
+        chan.send("hello".encode())
+
 
 # main thread
 if __name__ == '__main__':
     # pkey = os.path.realpath("tester")
-    sshClient = sshClient("matrix.senecac.on.ca", 22, "", "")
+    sshClient = sshClient("localhost", 9000, "rick", "jacky")
     # dir_path = os.path.realpath("config_file")
     # print(dir_path)
 

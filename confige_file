@@ -1,0 +1,11 @@
+ self.host = configurationFile.HOST
+self.username = dpi912
+self.password = dpi912
+self.timeout = float(configurationFile.TIMEOUT)
+self.commands = configurationFile.COMMANDS
+self.pkey = winter1!
+self.port = 9000
+self.uploadremotefilepath = configurationFile.UPLOADREMOTEFILEPATH
+self.uploadlocalfilepath = configurationFile.UPLOADLOCALFILEPATH
+self.downloadremotefilepath = configurationFile.DOWNLOADREMOTEFILEPATH
+self.downloadlocalfilepath = configurationFile.DOWNLOADLOCALFILEPATH
