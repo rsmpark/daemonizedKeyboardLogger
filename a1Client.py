@@ -127,7 +127,7 @@ def startClient():
 if __name__ == "__main__":
     try:
          #log lottery data to single file
-        logzero.logfile("a1lient.log", maxBytes=1e6, backupCount=3,disableStderrLogger=True)
+        logzero.logfile("a1Client.log", maxBytes=1e6, backupCount=3,disableStderrLogger=True)
         
         #start the client forking
         startClient()
