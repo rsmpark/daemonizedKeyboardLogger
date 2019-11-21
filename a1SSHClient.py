@@ -3,6 +3,9 @@
 import paramiko
 import socket
 import os
+import logzero
+from logzero import logger
+import threading
 
 
 class sshClient(object):
@@ -17,16 +20,18 @@ class sshClient(object):
     # make a connection to a remote SSH server
     def makeSSHConnection(self):
         try:
-            print("Establishing ssh connection")
+            logger.info("Establishing ssh connection")
             # create a client instance, auto generate a key
             # and attempt to connect to a host
             self.SSHClient = paramiko.SSHClient()
+            self.SSHClient.load_system_host_keys()
             self.SSHClient.set_missing_host_key_policy(
-                paramiko.AutoAddPolicy())
+                paramiko.WarningPolicy())
 
             self.SSHClient.connect(hostname=self.hostName,  port=self.portNumber,
                                    username=self.userName,  password=self.passWord)
-            print('SSH Connection Established . . .')
+            logger.info('SSH Connection Established . . .')
+
             # handle errors
         except paramiko.AuthenticationException as authErr:
             print('Authentication failed:',  authErr)
@@ -90,19 +95,35 @@ class sshClient(object):
             SFTPInstance.close()
             self.SSHClient.close()
 
-    def envokeShell(self):
-        chan = self.SSHClient.invoke_shell()
-        chan.send("hello".encode())
+    def invoke_shell(self):
+        try:
+            # connect to SSH server
+            self.makeSSHConnection()
+            channel = self.SSHClient.get_transport().open_session()
+            logger.info("Calling invoke shell")
+            logger.info("Invoke shell called")
+            channel.sendall("hello".encode())
+            logger.info("Sending message")
+        except paramiko.SSHException as sshErr:
+            print(f'Shell invoke failed:{sshErr}')
+            self.SSHClient.close()
+        except socket.timeout as toutErr:
+            print('Command timed out:',  toutErr)
+            self.SSHClient.close()
+        except Exception as err:
+            print('Exception has ocurred:',  err)
+            self.SSHClient.close()
 
 
 # main thread
 if __name__ == '__main__':
+    # Add logging to logfile and disable output to the terminal
+    logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
+                    backupCount=3, disableStderrLogger=True)
+
     # pkey = os.path.realpath("tester")
     sshClient = sshClient("localhost", 9000, "rick", "jacky")
     # dir_path = os.path.realpath("config_file")
     # print(dir_path)
 
-    sshClient.executeCommand('pwd')
-    # sshClient.uploadFile(dir_path, "/home/smpark7/zzzz")
-    # sshClient.downloadFile("/home/smpark7/zzzz",
-    #                        "/home/lab/bin/py/project/destinations")
+    sshClient.invoke_shell()

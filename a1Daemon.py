@@ -1,330 +1,430 @@
 #!/usr/bin/python3
 
-# DPI 912 Daemon
+# ==============================================================================
+#   Assignment:  MILESTONE 3
+#
+#       Author:  Sang Min Park
+#     Language:  Python | Libraries: socket, json, os, errno, argparse,
+#                                    lotteryGenerator, signal, sys, atexit,
+#                                    logzero
+#   To Compile:  N/A
+#
+#        Class:  DPI912
+#    Professor:  Harvey Kaduri
+#     Due Date:  Sunday, November 03, 2019
+#    Submitted:  Sunday, November 03, 2019
+#
+# -----------------------------------------------------------------------------
+#
+#  Description:  Multi-processing program creates a well-behaving daemon process that listens to
+#                   incoming client connection. Once connection has been successfully
+#                   accepted, child process is forked off to handle their lottery ticket requests.
+#                   The daemon process is killed when the use runs the program
+#                   with "-status stop" command.
+#
+#
+#
+#        Input:  Program takes command line arguments for port number, IPv6 address,
+#                   and status command.
+#
+#       Output:  The program will write all server logs into a logfile located
+#                   in the /tmp directory. The file name will be the name of the client
+#                   and the pid for its file extension.
+#
+#    Algorithm:  The program will create daemon with a non-blocking listening socket for the server.
+#                   Pidfile is created and stores pid of the daemon process. It is later access by
+#                   the program to kill the daemon process when "-status stop" command is issued.
+#                   Once the socket accepts a connection, a child process will be forked
+#                   to handle all requests sent by the client. Before handling the requests,
+#                   the child processes need to close their listening socket.
+#                   The program uses lotteryGenerator script file to provide
+#                   appropriate lottery tickets requested by the client.
+#                   The parent process will go on to close the connection socket and loop back
+#                   to listen to other incoming connections.
+#
+#   Required Features Not Included:  N/A
+#
+#   Known Bugs:  N/A
+#
+# ==============================================================================
 
 import os
-import sys
-import argparse
-import socket
-import signal
 import errno
-import atexit
-import paramiko
-import logzero
+import signal
+import socket
+import json
 import a1SSHServer
+import argparse
+import sys
+import atexit
+import logzero
+import paramiko
 from logzero import logger
+
+# Maximum queue size for the server to handle incoming client
+requestQueueSize = 1024
+# Size of the header that will be attached to all data packets
+headersize = 10
+# Delimiter that is used to append in between data packets
+delimiter = "&&"
+# Pathway of pidfile that will contain the pid of double-forked daemon
+pidfile = "/tmp/daemonServer.pid"
 
 host_key = paramiko.RSAKey(filename="test_rsa.key")
 
 
-class Server(object):
-    # server socket constructor
-    def __init__(self, ipAddress, socketNumber, queueSize):
-        try:
-            self.ipAddress = ipAddress
-            self.socketNumber = socketNumber
-            self.queueSize = queueSize
-            self.serverSocket = socket.socket(
-                socket.AF_INET6, socket.SOCK_STREAM)
-            self.connectionSocket = None
-            self.connectionAddress = None
-            # handle errors
-        except Exception as err:
-            raise Exception(err)
-
-    # attempt to make a connection and bind
-    def makeConnection(self):
-        try:
-            self.serverSocket.setsockopt(
-                socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self.serverSocket.bind((self.ipAddress, self.socketNumber))
-            self.serverSocket.listen(self.queueSize)
-            # handle errors
-        except Exception as err:
-            raise Exception(err)
-
-    # attempt to accept a new connection
-    def acceptConnection(self):
-        try:
-            self.connectionSocket, self.connectionAddress = self.serverSocket.accept()
-            return (self.connectionSocket,  self.connectionAddress)
-            # handle errors
-        except Exception as err:
-            self.serverSocket.close()
-            raise Exception(err)
-
-    # attempt to send encoded data
-    def sendData(self, dataBuffer):
-        try:
-            self.serverSocket.sendall(dataBuffer.encode())
-            # handle errors
-        except Exception as err:
-            self.serverSocket.close()
-            raise Exception(err)
-
-    # attempt to receive and decode data
-    def receiveData(self, bufferSize):
-        try:
-            return self.serverSocket.recv(bufferSize).decode()
-            # handle errors
-        except Exception as err:
-            self.serverSocket.close()
-            raise Exception(err)
-
-    # close server socket to clean up resources
-    def closeServer(self):
-        try:
-            self.serverSocket.close()
-            # handle errors
-        except Exception as err:
-            raise Exception(err)
-
-# function to get rid of zombie child processes
-
-
-def processTerminator(signalNumber,  functionReference):
-    # wait for child processes to complete and destroy them
+def grimReaper(signum,  frame):
+    # TODO: remove function and try running the program without it
+    """Harvests child processes that have sent a signal. Ensures no zombies"""
     while True:
         try:
+            # Wait for any child process, do not block and return EWOULDBLOCK error
             pid,  status = os.waitpid(-1,  os.WNOHANG)
         except OSError:
             return
-        # no more zombies
+        # To ensure no zombies
         if pid == 0:
             return
+    print('Child {pid} terminated with status {status}'.format(
+        pid=pid,  status=status))
 
-# persistent daemon program
+
+def parseCmdArgument():
+    """Creating a parser to parse the command line arguments"""
+    parser = argparse.ArgumentParser(description='CLI inputs to create server socket',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
+
+    # argument for the type of lottery wanted by the user
+    parser.add_argument('-port',
+                        help="""port number for socket""",
+                        type=int, default=9000
+                        )
+    # argument for the amount of lottery tickets
+    parser.add_argument('-ip', type=str,
+                        help="IPv6 address (e.g. ::1)",
+                        default="::1")
+
+    # argument for execution status of the server
+    parser.add_argument('-status', type=str,
+                        help="start (execute server program) | stop (kill server)",
+                        required=True)
+    # return the parsed command line arguments
+    return parser.parse_args()
 
 
-def daemonExecutionLoop(ipAddress,  socketNumber,  requestQueueSize,  pidFile,  *,
-                        stdin='/dev/null',  stdout='/dev/null',  stderr='/dev/null'):
+def generateAddress(commandArgs):
+    """Generate address for the server socket"""
+    # Return a tuple of IPv6 address and a port number to be used
+    # to create a server socket
+    return commandArgs.ip, commandArgs.port
 
-    # check if file exists -cookbook
-    if os.path.exists(pidFile):
-        logger.error('Daemon already running!')
-        raise RuntimeError('Daemon already running!')
 
-    # first fork to detach -cookbook
+def createSocket():
+    """Creating a server socket"""
+    try:
+        serverSocket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        return serverSocket
+    except socket.error as e:
+        logger.error(f"Error creating a socket: {e}")
+        exit()
 
+
+def bindSocket(serverSocket, address):
+    """Binding socket and listening for oncoming connection"""
+    try:
+        # Binding socket to address
+        serverSocket.bind(address)
+        # Listening to oncoming connection
+        serverSocket.listen(requestQueueSize)
+    except socket.error as e:
+        logger.error(f"Error binding socket: {e}")
+        serverSocket.close()
+        exit()
+
+
+def serializeDataPacket(data):
+    """Composing a data packet to be sent by appending the data to the header"""
+    # Header contains information about the size of the data to be sent to client
+    dataSize = str(len(data)).ljust(10)
+    header = "{}".format(dataSize)
+    # Append header to the fron of the data
+    dataPacket = header + data
+    return dataPacket
+
+
+def deserializeDataPacket(dataPacket: str):
+    """Deserializes the received data packet using delimiters"""
+    # Split the data packet by delimiters
+    lotteryRequestInfo = dataPacket.split("&&")
+    return lotteryRequestInfo
+
+
+def sendLotteryTickets(lotteryType, ticketQuantity: int, connectionServerSocket):
+    """Serializes all requested lottery tickets into a single data packet and
+    sends the data packet to the client"""
+    # Data packet that is to be sent to the client
+    finalDataPacket = ""
+
+    # lotteryTickets will hold a tuple of lottery tickets in a tuple
+    for i in range(ticketQuantity):
+        # Generate lottery numbers for a single lottery ticket
+        lotteryTicket = lotteryGenerator.generateLotteryTickets(lotteryType)
+        # Parse lottery ticket into a JSON formatted string
+        lotteryTicketPacket = json.dumps(lotteryTicket)
+
+        # Adding delimiters between the lottery tickets
+        if (i == ticketQuantity - 1):
+            # DO NOT append delimiter for the last lottery packet
+            finalDataPacket += lotteryTicketPacket
+        else:
+            finalDataPacket += lotteryTicketPacket + delimiter
+
+    # Serialize the lottery tickets and append lottery type
+    finalDataPacket = serializeDataPacket(finalDataPacket) + lotteryType
+    # Send finalized data packet to client
+    connectionServerSocket.sendall(finalDataPacket.encode())
+
+
+def handleLotteryTicketRequest(connectionServerSocket):
+    """All client requests that will be handled by the children processes"""
+    try:
+        # Receive data packet from client
+        dataPacket = connectionServerSocket.recv(1000).decode()
+        # Deserialize data packet to extract information about lottery ticket request
+        lotteryRequestInfo = deserializeDataPacket(dataPacket)
+
+        # Send lottery tickets to client
+        sendLotteryTickets(
+            lotteryRequestInfo[0], int(lotteryRequestInfo[1]), connectionServerSocket)
+    except RuntimeError as e:
+        # If any error occurs while handling request, print the error message and
+        # close the connection socket
+        logger.error(e)
+        connectionServerSocket.close()
+    except ConnectionResetError as e:
+        logger.error(e)
+
+
+def dropPrivileges(uid=65534, gid=65534):
+    """Drops UID and GID privileges if current process has access to root.
+    98 is used to set new UID and GID.
+    UIDs 1 through 99 are traditionally reserved for special system users (pseudo-users),
+    such as wheel, daemon, lp, operator, news, mail, etc.
+    Reference: http://www.linfo.org/uid.html"""
+    try:
+        # If process has access to root ...
+        if os.getuid() == 0:
+            logger.info("Dropping root access privileges")
+        # Setting new UID and GID
+            try:
+                os.setuid(uid)
+            except OSError as e:
+                logger.error(f"'Could not set effective user id: {e}")
+
+            try:
+                os.setgid(gid)
+            except OSError as e:
+                logger.error(f"'Could not set effective group id: {e}")
+        else:
+            # Process has no root access
+            logger.info("No root privileges")
+    except Exception as e:
+        logger.error("Failed to drop privileges: {e}")
+        raise Exception(e)
+
+
+def daemonize(pidfile, *, stdin='/dev/null',
+              stdout='/dev/null',
+              stderr='/dev/null'):
+    """The code below is adapted by:
+    https://github.com/dabeaz/python-cookbook/blob/master/
+    src/12/launching_a_daemon_process_on_unix/daemon.py
+    It uses Unix double-fork magic based on Stevens's book
+    "Advanced Programming in the UNIX Environment".
+    Creates a daemon that is diassociated with the terminal
+    and has no root privileges. Once double-forking is successful
+    it writes its pid to a designated pidfile. The pidfile
+    is later used to kill the daemon.
+    """
+
+    # If pidfile exists, there is a server program that is currently running
+    if os.path.exists(pidfile):
+        raise RuntimeError('Already running')
+
+    # First fork (detaches from parent)
     try:
         if os.fork() > 0:
-            logger.info('Fork 1: Detached from parent!')
-            raise SystemExit('Exit Code: ' + str(0))
-    except OSError:
-        logger.error('First fork has failed!')
-        raise RuntimeError('First fork has failed!')
+            # Parent exit
+            raise SystemExit(0)
+    except OSError as e:
+        raise RuntimeError(f'fork #1 failed: {e}')
+
+    # Decouple from parent environment
+    os.chdir('/tmp')
+    os.umask(0)
+    os.setsid()
+    dropPrivileges()
 
     logger.info("fork#1 successfull")
-
-    # set uid, gid and chdir to /tmp - cookbook
-    # set session with no controlling terminal - cookbook
-    # NOTE: root access required to set to 65534
-    # error is thrown when not root, uncomment
-    # os.setgid(65534) and os.setuid(65534) to see
-    try:
-        os.chdir('/tmp')
-        os.setuid(os.getuid())
-        os.setgid(os.getgid())
-        # os.setuid(65534)
-        # os.setgid(65534)
-        os.setsid()
-    except Exception as err:
-        logger.error(err)
-        raise Exception(err)
-
-    # second fork to detach as session leader - cookbook
+    # Second fork (relinquish session leadership)
     try:
         if os.fork() > 0:
-            logger.info('Fork 2: Session leadership relinquished!')
-            raise SystemExit('Exit Code: ' + str(0))
-    except OSError:
-        logger.error('Second fork has failed!')
-        raise RuntimeError('Second fork has failed!')
+            raise SystemExit(0)
+    except OSError as e:
+        raise RuntimeError(f'fork #2 failed: {e}')
 
-    logger.info("fork#2 successfull")
-
-    # flush input and output buffers - cookbook
+    # Flush I/O buffers
     sys.stdout.flush()
     sys.stderr.flush()
 
-    # replace file descriptors to close stdin, out, err
-    try:
-        with open(stdin, 'rb', 0) as fileHandler:
-            os.dup2(fileHandler.fileno(), sys.stdin.fileno())
-        with open(stdout, 'ab', 0) as fileHandler:
-            os.dup2(fileHandler.fileno(), sys.stdout.fileno())
-        with open(stderr, 'ab', 0) as fileHandler:
-            os.dup2(fileHandler.fileno(), sys.stderr.fileno())
-    except Exception as err:
-        logger.error(err)
-        raise Exception(err)
+    # Replace file descriptors for stdin, stdout, and stderr
+    with open(stdin, 'rb', 0) as f:
+        os.dup2(f.fileno(), sys.stdin.fileno())
+    with open(stdout, 'ab', 0) as f:
+        os.dup2(f.fileno(), sys.stdout.fileno())
+    with open(stderr, 'ab', 0) as f:
+        os.dup2(f.fileno(), sys.stderr.fileno())
 
-    # start server
-    try:
-        # prevent hijacking with SO_REUSEPORT parameter
-        daemonSocket = socket.socket(socket.AF_INET6,  socket.SOCK_STREAM)
-        daemonSocket.setsockopt(socket.SOL_SOCKET,  socket.SO_REUSEPORT,  1)
-        daemonSocket.bind((ipAddress,  socketNumber))
-        daemonSocket.listen(requestQueueSize)
-        logger.info('Server listening on socket: ' +
-                    str(socketNumber) + ' IPv6 address: ' + ipAddress)
-        logger.info('Parent PID: ' + str(os.getpid()))
-    except Exception as err:
-        logger.error(err)
-        return
+    # PID of the double-forked daemon
+    fork2DaemonPID = os.getpid()
 
-    # write to pid file to identify running process - cookbook
-    try:
-        with open(pidFile,  'w') as fileHandler:
-            fileHandler.write(str(os.getpid()))
-    except Exception as err:
-        logger.error(err)
-        raise Exception(err)
+    # Write the PID file
+    with open(pidfile, 'w') as f:
+        print(fork2DaemonPID, file=f)
 
-    # remove file on exit to indicate killed process - cookbook
-    atexit.register(lambda: os.remove(pidFile))
+    logger.info(f"fork#2 successful pid[{fork2DaemonPID}]")
 
-    # sigterm handler - cookbook
-    def sigTermTermination(signalNo,  frame):
-        logger.info('Daemon Terminated!')
+    # Arrange to have the PID file removed on exit/signal
+    atexit.register(lambda: os.remove(pidfile))
+
+    # Signal handler for termination (required)
+    def sigterm_handler(signo, frame):
         raise SystemExit(1)
-    signal.signal(signal.SIGTERM,  sigTermTermination)
 
-    # handle child return event, terminate the child to clean up resources
-    # cookbook
-    signal.signal(signal.SIGCHLD,  processTerminator)
+    signal.signal(signal.SIGTERM, sigterm_handler)
 
-    # fork off children to handle incoming connections
+
+def serverForever(commandArgs):
+    """Main function that will execute forever until os kills the process.
+    Parent process will listen to all possible incoming clients.
+    Once connection has been established parent will fork a child per connection.
+    Parent will close the connection socket and loop back to the beginning.
+    Child processes will always close the listening socket and handle request from client."""
+
+    # Generate address to be used for the server socket
+    address = generateAddress(commandArgs)
+    # Create listening server socket
+    listeningServerSocket = createSocket()
+    # Securing possible socket hijacking
+    listeningServerSocket.setsockopt(
+        socket.SOL_SOCKET,  socket.SO_REUSEPORT,  1)
+
+    # Bind server socket to listen for oncoming connection
+    bindSocket(listeningServerSocket, address)
+
+    logger.info('Server HTTP on port {address} ...'.format(address=address))
+
+    # event handler - when child dies, returns the signal SIGCHILD, grim_reaper then cleans it up to prevent zombies
+    signal.signal(signal.SIGCHLD,  grimReaper)
+
     while True:
-        # attempt to accept connection
         try:
-            connectionSocket,  connectionAddress = daemonSocket.accept()
+            logger.info("Waiting for connection")
+            # Accept incoming connection from client
+            connectionServerSocket,  clientAddress = listeningServerSocket.accept()
         except IOError as e:
-            code,  msg = e.args
-            if code == errno.EINTR:
+            errorCode,  errorMssg = e.args
+            # restart 'accept' if it was interrupted
+            if errorCode == errno.EINTR:
                 continue
             else:
                 raise
 
-        # fork off child process to do work, child doesn't listen
         pid = os.fork()
-        # child
+        # Separate child from its parent
         if pid == 0:
-            daemonSocket.close()
-            # logger.info(connectionSocket.recv(1024).decode())
+            logger.info(
+                f"fork#3 successful [{os.getpid()}]: handling client{clientAddress} requests")
+            # Only child daemon will execute from this point on
+            # Closing listening socket for childeren
+            listeningServerSocket.close()
 
-            sshSocket = paramiko.Transport(connectionSocket)
+            logger.info("Creating SSH Server")
+            sshSocket = paramiko.Transport(connectionServerSocket)
 
             sshSocket.add_server_key(host_key)
             sshServer = a1SSHServer.SSHServer()
 
             try:
+                logger.info("Starting SSH Server")
                 sshSocket.start_server(server=sshServer)
             except paramiko.SSHException:
                 print("*** SSH negotiation failed.")
                 sys.exit(1)
 
-                # wait for auth
+            logger.info("Connecting SSH Server")
             sshChannel = sshSocket.accept(1)
             if sshChannel is None:
                 print("*** No channel.")
                 sys.exit(1)
-            print("Authenticated!")
+            logger.info("Authenticated!")
 
-            sshServer.event.wait(10)
-            if not sshServer.event.is_set():
-                print("*** Client never asked for a shell.")
-                sys.exit(1)
+            # sshServer.event.wait(30)
+            # if not sshServer.event.is_set():
+            #     print("*** Client never asked for a shell.")
+            #     sys.exit(1)
 
-            print(sshChannel.recv(1024).decode())
+            logger.info("Waiting for SSH message.")
+            RXmessage = sshChannel.recv(1024).decode()
+            logger.info("Received SSH message.")
+            logger.info(RXmessage)
+
             sshChannel.close()
 
-            connectionSocket.close()
+            # Once task is completed close connection socket
+            connectionServerSocket.close()
+            # Children  exits here
             os._exit(0)
-        # parent
         else:
-            connectionSocket.close()
+            # Parent resumes code here after forking
+            # Close parent's copy of connection server and loop over to continue to listen
+            # for incoming connection
+            connectionServerSocket.close()
 
 
-# start daemon function
-def startDaemon():
-    # optional IPv6 address and socket number switch arguments
-    # default is loopback IPv6 address ::1 and socket number 9000
-    parser = argparse.ArgumentParser(description='DPI912 assignment - non-blocking daemon.',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-ip', type=str, default="::1",
-                        help='Daemon IPv6 address.',  required=False)
-    parser.add_argument('-socket', type=int, default=9000,
-                        help='Daemon socket number.',  required=False)
-
-    # optional request queue size, default is 1024
-    parser.add_argument('-queue', type=int, default=1024,
-                        help='Request queue size for the daemon.',  required=False)
-
-    # positional arguments for start and stop
-    parser.add_argument('status',  nargs='?')
-
-    # semaphore file to track if daemon is currently with pid
-    pidFile = '/tmp/a1Daemon.pid'
-
-    try:
-        logger.info("Parsing command line arguements")
-        # parse arguments and start server
-        commandLineArgs = parser.parse_args()
-        ipAddress = commandLineArgs.ip
-        socketNumber = commandLineArgs.socket
-        requestQueueSize = commandLineArgs.queue
-
-        # check if start and stop args were passed on the command line - cookbook
-        if len(sys.argv) < 2:
-            print('Incorrect Args! Usage: ./a1Daemon.py [start | stop]')
-            logger.error('Incorrect Args! Usage: ./a1Daemon.py [start | stop]')
-            raise SystemExit('Exit Code: ' + str(1))
-
-        # detect start command - cookbook
-        if commandLineArgs.status == 'start':
-            try:
-                logger.info("Starting daemon execution")
-                daemonExecutionLoop(ipAddress,  socketNumber,
-                                    requestQueueSize,  pidFile)
-            except RuntimeError as err:
-                print(err)
-                logger.error(err)
-            raise SystemExit('Exit Code: ' + str(1))
-        # detect stop command and send signal to kill daemon - cookbook
-        elif commandLineArgs.status == 'stop':
-            if os.path.exists(pidFile):
-                with open(pidFile) as fileHandler:
-                    os.kill(int(fileHandler.read()),  signal.SIGTERM)
-            else:
-                print('Daemon is not currently running!')
-                logger.error('Daemon is not currently running!')
-                raise SystemExit('Exit Code: ' + str(1))
-        # detect erroneous command - cookbook
-        else:
-            print('Unknown command:',  str(sys.argv[1]))
-            logger.error('Unknown command:' + str(sys.argv[1]))
-            raise SystemExit('Exit Code: ' + str(1))
-    except Exception:
-        raise
-
-
-# main thread, parse args and run server indefinitely
 if __name__ == '__main__':
-    try:
-        # log information, errors and other output to a single file
-        logzero.logfile("/tmp/a1Daemon.log", maxBytes=1e6,
-                        backupCount=3, disableStderrLogger=True)
+    # Parse command line arguments
+    commandArgs = parseCmdArgument()
 
-        # start daemon
-        startDaemon()
+    # Add logging to logfile and disable output to the terminal
+    logzero.logfile("/home/lab/bin/py/project/sshDaemon.log", maxBytes=1e6,
+                    backupCount=3, disableStderrLogger=True)
 
-        # handle errors
-    except ValueError as valErr:
-        logger.error(valErr)
-    except SystemExit as sysExit:
-        logger.error(sysExit)
-    except KeyboardInterrupt:
-        logger.error('Ctrl-C Shutdown!')
-    except Exception as err:
-        logger.error(err)
+    # Start server process
+    if commandArgs.status == "start":
+        logger.info("Server process starting...")
+        try:
+            # Start daemonizing process
+            daemonize(pidfile, stdout='/tmp/daemonServer.pid',
+                      stderr='/tmp/daemonServer.pid')
+            # Run server process to handle client connections
+            serverForever(commandArgs)
+        except RuntimeError as e:
+            print(e, file=sys.stderr)
+            logger.error(e)
+            raise SystemExit(1)
+    # Kill server process
+    elif commandArgs.status == "stop":
+        # Kill the process id that is located in the pidfile
+        if os.path.exists(pidfile):
+            logger.info("Server process killed...\n")
+            with open(pidfile) as file:
+                os.kill(int(file.readline().rstrip()), signal.SIGTERM)
+        else:
+            print("Expected server pidfile not found", file=sys.stderr)
+            logger.error("Expected server pidfile not found")
+            raise SystemExit(1)
+    else:
+        print("Wrong status command", file=sys.stderr)
+        logger.error("Wrong status command")
+        raise SystemExit(1)
