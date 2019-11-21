@@ -91,7 +91,7 @@ class sshClient(object):
             SFTPInstance.get(localPath,  remotePath)
             # handle errors
         except Exception as err:
-            print('Exception has ocurred:',  err)
+            print('Exception has occurred:',  err)
             SFTPInstance.close()
             self.SSHClient.close()
 
