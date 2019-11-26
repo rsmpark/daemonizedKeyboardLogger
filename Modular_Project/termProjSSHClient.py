@@ -87,9 +87,9 @@ class SSHClient(object):
             # execute a command remotely
             stdin,  stdout,  stderr = self.SSHClient.exec_command(command,
                                                                   timeout=10)
-            print(f"command STDOUT: {str(stdout.read())}")
+            print("command STDOUT: ", stdout.read())
             if stderr:
-                print(f"command STDERR: {str(stderr.read())}")
+                print("command STDERR: ", stderr.read())
             self.SSHClient.close()
             # handle errors
         except paramiko.SSHException as sshErr:
@@ -108,13 +108,16 @@ class SSHClient(object):
             # connect to SSH server
             self.makeSSHConnection()
             # create an SFTP tunnel
+            SFTPInstance = None
             SFTPInstance = self.SSHClient.open_sftp()
             SFTPInstance.put(localPath,  remotePath)
-            # handle errors
-        except Exception as err:
-            print('Exception has ocurred:',  err)
             SFTPInstance.close()
             self.SSHClient.close()
+            # handle errors
+        except Exception as err:
+            SFTPInstance.close()
+            self.SSHClient.close()
+            logger("uploadFile(): " + str(err))
 
     # download a file via the SSH tunnel from remote server via SFTP
     def downloadFile(self,  localPath,  remotePath):
@@ -122,13 +125,16 @@ class SSHClient(object):
             # connect to SSH server
             self.makeSSHConnection()
             # create an SFTP tunnel
+            SFTPInstance = None
             SFTPInstance = self.SSHClient.open_sftp()
             SFTPInstance.get(localPath,  remotePath)
-            # handle errors
-        except Exception as err:
-            print('Exception has occurred:',  err)
             SFTPInstance.close()
             self.SSHClient.close()
+            # handle errors
+        except Exception as err:
+            SFTPInstance.close()
+            self.SSHClient.close()
+            logger("downLoadFile(): " + str(err))
 
     def invoke_shell(self):
         try:
@@ -149,3 +155,14 @@ class SSHClient(object):
             print('Exception has ocurred:',  err)
             self.SSHClient.close()
 
+
+'''
+# main thread
+if __name__ == "__main__":
+    #create SSH client 
+    sshClient = SSHClient("127.0.0.1", 2222, "rick", "jacky")
+
+    #get command and send it
+    command = input("Enter a linux command: ")
+    sshClient.executeCommand(command)
+'''

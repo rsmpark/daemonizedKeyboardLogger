@@ -41,6 +41,7 @@ import socket
 import sys
 import threading
 import paramiko
+from logzero import logger
 
 class SSHServer(paramiko.ServerInterface):
     def __init__(self):
@@ -58,10 +59,39 @@ class SSHServer(paramiko.ServerInterface):
 
     def check_channel_exec_request(self, channel, command):
         # This is the command we need to parse
-        print(command)
         try:
-            os.system(command)
+            commandOutput = os.system(command)
+            logger.info("command output:" + str(commandOutput))
         except Exception as err:
-            print(err)
+            logger.error(err)
         self.event.set()
+        logger.info(str(command.decode()) + " sucessfully executed!")
         return True
+
+
+'''
+# main thread
+if __name__ == "__main__":
+    #create server
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    serverSocket.bind(('127.0.0.1', 2222))
+    serverSocket.listen(1024)
+
+    #accept a client connection
+    connectionSocket, connectionAddress = serverSocket.accept()
+
+    #create a channel
+    channel = paramiko.Transport(connectionSocket)
+    channel.set_gss_host(socket.getfqdn("127.0.0.1"))
+    channel.load_server_moduli()
+    channel.add_server_key(paramiko.RSAKey(filename="/tmp/termProjRSAKey.key"))
+
+    #create and start SSH server
+    sshServer = SSHServer()
+    channel.start_server(server=sshServer)
+
+    #wait for event then close channel
+    sshServer.event.wait(30)
+    channel.close()
+'''

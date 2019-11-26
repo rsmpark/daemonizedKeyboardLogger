@@ -39,8 +39,10 @@
 import os
 import socket
 import argparse
+import paramiko
 import logzero
 from logzero import logger
+from termProjSSHClient import SSHClient
 
 # TCP/IP socket client wrapper class implementation
 
@@ -56,7 +58,7 @@ class Client(object):
                 socket.SOCK_STREAM
             )
         except Exception as err:
-            print('client init:',err)
+            print('client init:', err)
             logger.error(err)
 
     # method that attempts to connect to a server
@@ -123,15 +125,20 @@ class ForkedClient(object):
 
     # method to communicate with the daemon
     def callDaemon(self):
+        command = input('Enter a linux command to run:')
         try:
             # fork off client before sending data
             pid = os.fork()
             if pid == 0:
+                # client
                 client = Client(self.ipAddress, self.socketNumber)
                 client.makeConnection()
                 logger.info(client.receiveData(1024))
                 client.sendData('Hello from client!')
-                client.closeClient()
+
+                # ssh client
+                sshClient = SSHClient("127.0.0.1", 2222, "rick", "jacky")
+                sshClient.downloadFile("/home/lab/bin/py/Assignment_Term_Project", "/etc/passwd")
                 os._exit(0)
 
             # wait for processes to finish and terminate them gracefully
