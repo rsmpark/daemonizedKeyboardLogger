@@ -135,3 +135,9 @@ if __name__ == '__main__':
 
     sshClient.invoke_shell()
 
+    #open sftp
+    pkey = paramiko.RSAKey.from_private_key_file('test_rsa.key')
+    transport = paramiko.Transport(('localhost', 3373))
+    transport.connect(username='rick', password='jacky', pkey=pkey)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    logger.info(str(sftp.listdir(".")))
