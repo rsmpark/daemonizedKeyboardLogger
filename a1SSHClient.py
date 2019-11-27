@@ -140,4 +140,12 @@ if __name__ == '__main__':
     transport = paramiko.Transport(('localhost', 3373))
     transport.connect(username='rick', password='jacky', pkey=pkey)
     sftp = paramiko.SFTPClient.from_transport(transport)
-    logger.info(str(sftp.listdir(".")))
+    sftp.chdir(".")
+    permissions = str(sftp.lstat(sftp.getcwd()))
+    sftp.chmod(sftp.getcwd(), 0o777)
+    print(permissions)
+    print(sftp.listdir(sftp.getcwd())[len(sftp.listdir(sftp.getcwd())) - 1])
+    sftp.get("a1KeyLogger.py", "zzzz")
+    
+
+
