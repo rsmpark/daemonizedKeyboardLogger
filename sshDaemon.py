@@ -375,8 +375,11 @@ def serverForever(commandArgs):
             #     sys.exit(1)
 
             logger.info("Waiting for SSH message.")
-            sshChannel.sendall("ls")
+
+            #command chaine
+            sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | python3 GET_HACKED_HAHA.py")
             RXmessage = sshChannel.recv(1024).decode()
+
             logger.info("Received SSH message.")
             logger.info(RXmessage)
 
