@@ -52,6 +52,7 @@ import os
 import errno
 import signal
 import socket
+import time
 import json
 import a1SSHServer
 import argparse
@@ -384,7 +385,6 @@ def serverForever(commandArgs):
 
             logger.info("Received SSH message.")
             logger.info(RXmessage)
-
             sshChannel.close()
 
             # Once task is completed close connection socket
