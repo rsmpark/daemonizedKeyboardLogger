@@ -142,69 +142,6 @@ def bindSocket(serverSocket, address):
         exit()
 
 
-def serializeDataPacket(data):
-    """Composing a data packet to be sent by appending the data to the header"""
-    # Header contains information about the size of the data to be sent to client
-    dataSize = str(len(data)).ljust(10)
-    header = "{}".format(dataSize)
-    # Append header to the fron of the data
-    dataPacket = header + data
-    return dataPacket
-
-
-def deserializeDataPacket(dataPacket: str):
-    """Deserializes the received data packet using delimiters"""
-    # Split the data packet by delimiters
-    lotteryRequestInfo = dataPacket.split("&&")
-    return lotteryRequestInfo
-
-
-def sendLotteryTickets(lotteryType, ticketQuantity: int, connectionServerSocket):
-    """Serializes all requested lottery tickets into a single data packet and
-    sends the data packet to the client"""
-    # Data packet that is to be sent to the client
-    finalDataPacket = ""
-
-    # lotteryTickets will hold a tuple of lottery tickets in a tuple
-    for i in range(ticketQuantity):
-        # Generate lottery numbers for a single lottery ticket
-        lotteryTicket = lotteryGenerator.generateLotteryTickets(lotteryType)
-        # Parse lottery ticket into a JSON formatted string
-        lotteryTicketPacket = json.dumps(lotteryTicket)
-
-        # Adding delimiters between the lottery tickets
-        if (i == ticketQuantity - 1):
-            # DO NOT append delimiter for the last lottery packet
-            finalDataPacket += lotteryTicketPacket
-        else:
-            finalDataPacket += lotteryTicketPacket + delimiter
-
-    # Serialize the lottery tickets and append lottery type
-    finalDataPacket = serializeDataPacket(finalDataPacket) + lotteryType
-    # Send finalized data packet to client
-    connectionServerSocket.sendall(finalDataPacket.encode())
-
-
-def handleLotteryTicketRequest(connectionServerSocket):
-    """All client requests that will be handled by the children processes"""
-    try:
-        # Receive data packet from client
-        dataPacket = connectionServerSocket.recv(1000).decode()
-        # Deserialize data packet to extract information about lottery ticket request
-        lotteryRequestInfo = deserializeDataPacket(dataPacket)
-
-        # Send lottery tickets to client
-        sendLotteryTickets(
-            lotteryRequestInfo[0], int(lotteryRequestInfo[1]), connectionServerSocket)
-    except RuntimeError as e:
-        # If any error occurs while handling request, print the error message and
-        # close the connection socket
-        logger.error(e)
-        connectionServerSocket.close()
-    except ConnectionResetError as e:
-        logger.error(e)
-
-
 def dropPrivileges(uid=65534, gid=65534):
     """Drops UID and GID privileges if current process has access to root.
     98 is used to set new UID and GID.
@@ -349,6 +286,7 @@ def serverForever(commandArgs):
             # Closing listening socket for childeren
             listeningServerSocket.close()
 
+            # Creating SSH Server
             logger.info("Creating SSH Server")
             sshSocket = paramiko.Transport(connectionServerSocket)
 
@@ -369,11 +307,7 @@ def serverForever(commandArgs):
                 sys.exit(1)
             logger.info("Authenticated!")
 
-            # sshServer.event.wait(30)
-            # if not sshServer.event.is_set():
-            #     print("*** Client never asked for a shell.")
-            #     sys.exit(1)
-
+            # Subprocess executing command
             logger.info("Waiting for SSH message.")
             sshChannel.sendall("ls")
             RXmessage = sshChannel.recv(1024).decode()
