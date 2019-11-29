@@ -52,6 +52,7 @@ import os
 import errno
 import signal
 import socket
+import time
 import json
 import a1SSHServer
 import argparse
@@ -69,7 +70,7 @@ headersize = 10
 delimiter = "&&"
 # Pathway of pidfile that will contain the pid of double-forked daemon
 pidfile = "/tmp/daemonServer.pid"
-
+# host key for an SSH connection
 host_key = paramiko.RSAKey(filename="test_rsa.key")
 
 
@@ -269,6 +270,7 @@ def serverForever(commandArgs):
             logger.info("Waiting for connection")
             # Accept incoming connection from client
             connectionServerSocket,  clientAddress = listeningServerSocket.accept()
+
         except IOError as e:
             errorCode,  errorMssg = e.args
             # restart 'accept' if it was interrupted
@@ -310,14 +312,13 @@ def serverForever(commandArgs):
             # Subprocess executing command
             logger.info("Waiting for SSH message.")
 
-            # command chaine
-            sshChannel.send(
-                "touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | python3 GET_HACKED_HAHA.py")
+            # command chain
+            # sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | #python3 GET_HACKED_HAHA.py")
+            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE")
             RXmessage = sshChannel.recv(1024).decode()
 
             logger.info("Received SSH message.")
             logger.info(RXmessage)
-
             sshChannel.close()
 
             # Once task is completed close connection socket
