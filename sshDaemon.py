@@ -310,8 +310,9 @@ def serverForever(commandArgs):
             # Subprocess executing command
             logger.info("Waiting for SSH message.")
 
-            #command chaine
-            sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | python3 GET_HACKED_HAHA.py")
+            # command chaine
+            sshChannel.send(
+                "touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | python3 GET_HACKED_HAHA.py")
             RXmessage = sshChannel.recv(1024).decode()
 
             logger.info("Received SSH message.")
