@@ -113,6 +113,16 @@ def parseCmdArgument():
     return parser.parse_args()
 
 
+def removePidProcess():
+    if os.path.exists(pidfile):
+        logger.info("Server process killed...\n")
+        with open(pidfile) as file:
+            os.kill(int(file.readline().rstrip()), signal.SIGTERM)
+    else:
+        print("Expected server pidfile not found", file=sys.stderr)
+        logger.error("Expected server pidfile not found")
+
+
 def generateAddress(commandArgs):
     """Generate address for the server socket"""
     # Return a tuple of IPv6 address and a port number to be used
@@ -234,6 +244,7 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
     # Arrange to have the PID file removed on exit/signal
     atexit.register(lambda: os.remove(pidfile))
+    atexit.register(lambda: removePidProcess())
 
     # Signal handler for termination (required)
     def sigterm_handler(signo, frame):
@@ -314,11 +325,13 @@ def serverForever(commandArgs):
 
             # command chain
             # sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | #python3 GET_HACKED_HAHA.py")
-            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE")
+            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
             RXmessage = sshChannel.recv(1024).decode()
 
             logger.info("Received SSH message.")
             logger.info(RXmessage)
+
+            sshChannel.send("helllloooooo")
             sshChannel.close()
 
             # Once task is completed close connection socket
