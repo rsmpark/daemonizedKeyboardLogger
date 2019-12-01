@@ -135,7 +135,7 @@ class sshClient(object):
             self.channel.sendall(command.encode())
 
             logger.info("Sleeping . . . ")
-            time.sleep(10)
+            #time.sleep(10)
             logger.info("Awake!")
             command = self.channel.recv(1024).decode()
             logger.info(f"Received 2nd message {command}")

