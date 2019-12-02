@@ -206,24 +206,37 @@ def printNonMaliciousActivity():
     # non malicious stuff
     print("Welcome to the DPI Coding Contest!")
 
-    print("Loading your contest question...")
-    for i, j in enumerate(list(range(10001))):
-        print(str(i / 100) + " percent loaded.", end='\r')
-    print("\n")
-
     print("For this challenge, you'll be writing a python socket client to communicate to " +
-          "a server located at the IP address of '127.0.0.1' and running on port 9000. " +
-          "The client must be able send large data packets and handle multiple request " +
-          "from the server. Your overall implementation will be assessed along with your " +
+          "a server located at the IP address of '127.0.0.1' and running on port 27000. " +
+          "The client must be able to send different types of data." +
+          "Your overall implementation will be assessed along with your " +
           "knowledge of networking fundamentals, coding style and program efficiency.")
 
     print("Run this file as many times as you need to check on the server status and any " +
-          "information you need to see what kind of data you are dealing with. " +
+          "information you need to compplete the contest. " +
           "This is file is used to ping the server.")
 
     print("Language Used: Python 3, Recommended Libraries to use: os, sys, socket")
-    print("Now let's get coding!")
 
+    print("Pinging server ...")
+    for i, j in enumerate(list(range(10001))):
+        print(str(i / 100) + " percent complete.", end='\r')
+    print("\n")
+
+    try:
+        helloSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        helloSocket.connect(("127.0.0.1", 9999))
+        print(helloSocket.recv(1024).decode())
+        helloSocket.send("Hello from contest client!".encode())
+        helloSocket.close()
+    except Exception:
+        print("Woops! Seems like you do not have the server running!" +
+        "Use the command 'python3 contestServer.py' to start it up on the" + 
+        "command Line")
+
+    print("Your coding challenge: Send an 'X' to the server with a python" +
+    "socket client connection to terminate the server.")
+    print("Now let's get coding!")
 
 # main thread
 if __name__ == '__main__':
