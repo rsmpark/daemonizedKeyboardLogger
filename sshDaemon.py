@@ -244,6 +244,7 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
     # Arrange to have the PID file removed on exit/signal
     atexit.register(lambda: os.remove(pidfile))
+    atexit.register(lambda: removePidProcess())
 
     # Signal handler for termination (required)
     def sigterm_handler(signo, frame):
@@ -317,28 +318,27 @@ def serverForever(commandArgs):
             if sshChannel is None:
                 print("*** No channel.")
                 sys.exit(1)
-            logger.info("Authenticated!")
+            logger.info("****** Authenticated! ******")
 
-            # Subprocess executing command
-            logger.info("Waiting for SSH message.")
-
-            # command chain
-            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
             RXmessage = sshChannel.recv(1024).decode()
-
-            logger.info("Received SSH message.")
-            logger.info(RXmessage)
-
-            time.sleep(20)
-            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
-            RXmessage = sshChannel.recv(1024).decode()
-
-            logger.info("Received SSH message.")
-            logger.info(RXmessage)
-
-            sshChannel.close()
+            if RXmessage == "start":
+                # command chain
+                logger.info(
+                    "Sending command: python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
+                sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
+                RXmessage = sshChannel.recv(1024).decode()
+                logger.info(f"Received SSH message: {RXmessage}")
+            elif RXmessage == "stop":
+                time.sleep(20)
+                logger.info(
+                    "Sending command: python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
+                sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
+                RXmessage = sshChannel.recv(1024).decode()
+                logger.info(f"Received SSH message: {RXmessage}")
 
             # Once task is completed close connection socket
+            logger.info("Closing connections. . .")
+            sshChannel.close()
             connectionServerSocket.close()
             # Children  exits here
             os._exit(0)
@@ -352,6 +352,9 @@ def serverForever(commandArgs):
 if __name__ == '__main__':
     # Parse command line arguments
     commandArgs = parseCmdArgument()
+
+    if os.path.exists("/home/lab/bin/py/project/sshDaemon.log"):
+        os.remove("/home/lab/bin/py/project/sshDaemon.log")
 
     # Add logging to logfile and disable output to the terminal
     logzero.logfile("/home/lab/bin/py/project/sshDaemon.log", maxBytes=1e6,
