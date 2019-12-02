@@ -117,7 +117,8 @@ def removePidProcess():
     if os.path.exists(pidfile):
         logger.info("Server process killed...\n")
         with open(pidfile) as file:
-            os.kill(int(file.readline().rstrip()), signal.SIGTERM)
+            pid = int(file.readline().rstrip())
+            os.kill(pid, signal.SIGTERM)
     else:
         logger.error("Expected server pidfile not found")
 
@@ -243,7 +244,6 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
     # Arrange to have the PID file removed on exit/signal
     atexit.register(lambda: os.remove(pidfile))
-    atexit.register(lambda: removePidProcess())
 
     # Signal handler for termination (required)
     def sigterm_handler(signo, frame):
@@ -323,15 +323,18 @@ def serverForever(commandArgs):
             logger.info("Waiting for SSH message.")
 
             # command chain
-            # sshChannel.send("touch GET_HACKED_HAHA.py | echo \"#!/usr/bin/python3\nprint('Hey, you just got hacked!')\" > GET_HACKED_HAHA.py | #python3 GET_HACKED_HAHA.py")
-            sshChannel.send("ls")
+            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE start")
             RXmessage = sshChannel.recv(1024).decode()
 
             logger.info("Received SSH message.")
             logger.info(RXmessage)
 
-            time.sleep(10)
-            sshChannel.send("stop")
+            time.sleep(20)
+            sshChannel.send("python3 ZZZZ_NOT_SUSPICIOUS_FILE stop")
+            RXmessage = sshChannel.recv(1024).decode()
+
+            logger.info("Received SSH message.")
+            logger.info(RXmessage)
 
             sshChannel.close()
 
@@ -373,7 +376,8 @@ if __name__ == '__main__':
         if os.path.exists(pidfile):
             logger.info("Server process killed...\n")
             with open(pidfile) as file:
-                os.kill(int(file.readline().rstrip()), signal.SIGTERM)
+                pid = int(file.readline().rstrip())
+                os.kill(pid, signal.SIGTERM)
         else:
             print("Expected server pidfile not found", file=sys.stderr)
             logger.error("Expected server pidfile not found")
