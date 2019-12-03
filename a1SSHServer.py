@@ -1,22 +1,45 @@
 #!/usr/bin/python3
 
-# Copyright (C) 2003-2007  Robey Pointer <robeypointer@gmail.com>
-#
-# This file is part of paramiko.
-#
-# Paramiko is free software; you can redistribute it and/or modify it under the
-# terms of the GNU Lesser General Public License as published by the Free
-# Software Foundation; either version 2.1 of the License, or (at your option)
-# any later version.
-#
-# Paramiko is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
-# details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with Paramiko; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
+#==============================================================================
+ #      Assignment:  DPI912 Term Project
+ #      File: SSH Server
+ #
+ #      Authors: Sang Min Park, Jacky Tea
+ #      Student ID (Sang Min Park): 124218173
+ #      Student ID (Jacky Tea): 152078168
+ #      Language: Python3
+ #      Libraries Used: base64, binascii, hexlify, os, sys,
+ #      socket, threading, traceback
+ #
+ #      To compile with python3 >>> python3 a1SSHServer.py 
+ #      To compile with executable >>> chmod 700 a1SSHServer.py
+ #                                 >>> ./a1SSHServer.py
+ #
+ #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
+ #      Professor: Professor Harvey Kaduri
+ #      Due Date: Friday, December 6, 2019, 5:50 PM EST
+ #      Submitted:  
+ #
+ #-----------------------------------------------------------------------------
+ #
+ #      Cookbook code utilized from the following source:
+ #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+ #
+ #      Description: A wrapper class for Paramiko's SSH server. Contains functions
+ #      for server initialization, connection and authentication.
+ #
+ #      Input: No command line or user input necessary.
+ #
+ #      Output: No output is generated here.
+ #
+ #      Algorithm: An SSH instance is created and authenticated with a username and password.
+ #      The Paramiko ServerInterface handles most of the logic here.
+ #
+ #      Required Features Not Included:  
+ #
+ #      Known Bugs:  
+ #
+#==============================================================================
 
 import base64
 from binascii import hexlify
@@ -29,12 +52,7 @@ import traceback
 import paramiko
 from paramiko.py3compat import b, u, decodebytes
 
-
-# setup logging
-#paramiko.util.log_to_file("demo_server.log")
-
 host_key = paramiko.RSAKey(filename="test_rsa.key")
-
 
 class SSHServer(paramiko.ServerInterface):
 

