@@ -355,11 +355,11 @@ if __name__ == '__main__':
     # Parse command line arguments
     commandArgs = parseCmdArgument()
 
-    if os.path.exists("sshDaemon.log"):
-        os.remove("sshDaemon.log")
+    if os.path.exists("/home/lab/bin/py/project/sshDaemon.log"):
+        os.remove("/home/lab/bin/py/project/sshDaemon.log")
 
     # Add logging to logfile and disable output to the terminal
-    logzero.logfile("sshDaemon.log", maxBytes=1e6,
+    logzero.logfile("/home/lab/bin/py/project/sshDaemon.log", maxBytes=1e6,
                     backupCount=3, disableStderrLogger=True)
 
     # Start server process

