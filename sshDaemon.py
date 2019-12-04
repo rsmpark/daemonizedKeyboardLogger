@@ -2,14 +2,14 @@
 
 #==============================================================================
  #      Assignment:  DPI912 Term Project
- #      File: SSH Client
+ #      File: SSH Daemon
  #
  #      Authors: Sang Min Park, Jacky Tea
  #      Student ID (Sang Min Park): 124218173
  #      Student ID (Jacky Tea): 152078168
  #      Language: Python3
  #      Libraries Used: paramiko, socket, os, time, logzero,
- #      threading, subprocess, sys, atexit, signal
+ #      threading, subprocess, sys, atexit, signal, json
  #
  #      To compile with python3 >>> python3 sshDaemon.py -status start
  #      To compile with executable >>> chmod 700 sshDaemon.py 
@@ -381,11 +381,11 @@ if __name__ == '__main__':
     # Parse command line arguments
     commandArgs = parseCmdArgument()
 
-    if os.path.exists("/home/lab/bin/py/project/sshDaemon.log"):
-        os.remove("/home/lab/bin/py/project/sshDaemon.log")
+    if os.path.exists("sshDaemon.log"):
+        os.remove("sshDaemon.log")
 
     # Add logging to logfile and disable output to the terminal
-    logzero.logfile("/home/lab/bin/py/project/sshDaemon.log", maxBytes=1e6,
+    logzero.logfile("sshDaemon.log", maxBytes=1e6,
                     backupCount=3, disableStderrLogger=True)
 
     # Start server process

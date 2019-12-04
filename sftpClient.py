@@ -1,5 +1,43 @@
 #!/usr/bin/python3
 
+#==============================================================================
+ #      Assignment:  DPI912 Term Project
+ #      File: SFTP Client
+ #
+ #      Authors: Sang Min Park, Jacky Tea
+ #      Student ID (Sang Min Park): 124218173
+ #      Student ID (Jacky Tea): 152078168
+ #      Language: Python3
+ #      Libraries Used: paramiko, logzero, socket
+ #
+ #      To compile with python3 >>> python3 contestUtil.py 
+ #      To compile with executable >>> chmod 700 contestUtil.py
+ #                                 >>> ./contestUtil.py
+ #
+ #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
+ #      Professor: Professor Harvey Kaduri
+ #      Due Date: Friday, December 6, 2019, 5:50 PM EST
+ #      Submitted:  
+ #
+ #-----------------------------------------------------------------------------
+ #
+ #      Cookbook code utilized from the following source:
+ #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+ #
+ #      Description: SFTP wrapper class for Paramiko's SFTP client
+ #
+ #      Input: No command line or user input necessary.
+ #
+ #      Output: None
+ #
+ #      Algorithm: SFTP functionality handled by Paramiko
+ #
+ #      Required Features Not Included:  
+ #
+ #      Known Bugs:  
+ #
+#==============================================================================
+
 import logzero
 from logzero import logger
 import socket

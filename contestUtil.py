@@ -11,9 +11,9 @@
  #      Libraries Used: paramiko, socket, os, time, logzero,
  #      threading, subprocess, sys, atexit, signal
  #
- #      To compile with python3 >>> python3 a1SSHClient.py 
- #      To compile with executable >>> chmod 700 a1SSHClient.py
- #                                 >>> ./a1SSHClient.py
+ #      To compile with python3 >>> python3 contestUtil.py 
+ #      To compile with executable >>> chmod 700 contestUtil.py
+ #                                 >>> ./contestUtil.py
  #
  #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
  #      Professor: Professor Harvey Kaduri
@@ -67,7 +67,7 @@ from sftpClient import sftpClient
 pidfile = "/tmp/client.pid"
 
 # Add logging to logfile and disable output to the terminal
-logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
+logzero.logfile("sshClient.log", maxBytes=1e6,
                 backupCount=3, disableStderrLogger=True)
 
 
