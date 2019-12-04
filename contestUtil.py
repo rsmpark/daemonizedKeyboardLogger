@@ -291,12 +291,11 @@ def makeSocketConnection():
                 pid = int(file.readline().rstrip())
                 os.kill(pid, signal.SIGTERM)
         else:
-            print("Expected server pidfile not found", file=sys.stderr)
+            logger.error("Expected server pidfile not found", file=sys.stderr)
             logger.error("Expected server pidfile not found")
             raise SystemExit(1)
     except Exception as e:
         logger.error(f"Error: {e}")
-        raise
 
 
 def runContest():
