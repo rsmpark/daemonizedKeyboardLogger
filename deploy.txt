@@ -36,6 +36,8 @@ All libraries can be installed with: pip3 install library_name
 
 How To Execute  ---------------------------------------------------------------------
 
+Step 0: Make sure you are running as root on your machine.
+
 Step 1: Make sure all source code and key files are in your current directory.
 The following 9 files are part of the project:
 - codingContest.py
@@ -70,6 +72,12 @@ the sshDaemon.py and contestServer.py files:
 
 >>> ./contestServer.py
 
+Note: The contestServer.py file runs a TCP/IP connection on port 9999 and on IPv4 address 
+of '127.0.0.1'.
+
+Note: The sshDaemon.py has a TCP/IP connection on port 9000 and on IPv4 address 
+of '127.0.0.1'. It also starts SSH on port 22 of localhost, requiring root access.
+
 Note: The time interval to key log can be changed with a -sleep switch.
 This is the time the daemon sleeps before terminating the key logger.
 Default value is 24.
@@ -83,6 +91,9 @@ second terminal (which simulates the targeted user side) and start the client:
 
 >>> ./codingContest.py
 
+Note: The codingContest.py file runs a TCP/IP connection on port 9999 and on IPv4 address 
+of '127.0.0.1'. There is a second TCP/IP connection on port 9000 and an SSH tunnel on 22, 
+all on localhost and requiring root access.
 
 
 Step 5: The codingContest.py file prints some information about the contest to the 
@@ -91,3 +102,4 @@ or anywhere else in your machine such as a text editor or in your browser. After
 30 seconds or so, a file called 'clientKeyLogs.log' should appear in the directory you
 executed all the code from (your current directory). This file will contain character
 by character data about all keystrokes you pressed within a certain interval of time.
+-------------------------------------------------------------------------------------
