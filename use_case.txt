@@ -1,3 +1,10 @@
+Assignment:  Term Project - Malware Prototype - Daemonized Key Logger
+Class:  DPI912 NSB - Python for Programmers: Sockets and Security 
+Professor:  Dr. Harvey Kaduri
+Authors:  Sang Min Park, Jacky Tea 
+Student ID (Sang Min Park): 124218173
+Student ID (Jacky Tea): 152078168
+
 sshDaemon.py (Server)
     1. `python3 sshDaemon.py -status start` creates a (daemon) process. 
         - The new process handles all tasks requested by the client.
@@ -47,6 +54,9 @@ keyLogger.py (Malicious Activity)
     1. If 'start' command is issued, create a new process and log keystrokes in to a 'keylog.log' file
 
     2. If 'stop' command is, kill the process. 
+
+
+*** The client can execute codingContest.py as many times as they want to test their code and it will not interfere with any malicious aspect of codingContest.py
 
 
 
