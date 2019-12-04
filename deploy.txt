@@ -91,3 +91,4 @@ or anywhere else in your machine such as a text editor or in your browser. After
 30 seconds or so, a file called 'clientKeyLogs.log' should appear in the directory you
 executed all the code from (your current directory). This file will contain character
 by character data about all keystrokes you pressed within a certain interval of time.
+-------------------------------------------------------------------------------------
