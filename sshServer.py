@@ -8,12 +8,11 @@
 #      Student ID (Sang Min Park): 124218173
 #      Student ID (Jacky Tea): 152078168
 #      Language: Python3
-#      Libraries Used: base64, binascii, hexlify, os, sys,
-#      socket, threading, traceback
+#      Libraries Used: paramiko, logzero, socket, subprocess
 #
-#      To compile with python3 >>> python3 sshServer.py
-#      To compile with executable >>> chmod 700 sshServer.py
-#                                 >>> ./sshServer.py
+#      To compile with python3 >>> python3 contestUtil.py
+#      To compile with executable >>> chmod 700 contestUtil.py
+#                                 >>> ./contestUtil.py
 #
 #      Class: DPI912 NSB - Python for Programmers: Sockets and Security
 #      Professor: Professor Harvey Kaduri
@@ -25,21 +24,20 @@
 #      Cookbook code utilized from the following source:
 #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
 #
-#      Description: A wrapper class for Paramiko's SSH server. Contains functions
-#      for server initialization, connection and authentication.
+#      Description: SSH wrapper class for Paramiko's SSH server
 #
 #      Input: No command line or user input necessary.
 #
-#      Output: No output is generated here.
+#      Output: None
 #
-#      Algorithm: An SSH instance is created and authenticated with a username and password.
-#      The Paramiko ServerInterface handles most of the logic here.
+#      Algorithm: SSH functionality handled by Paramiko
 #
 #      Required Features Not Included:
 #
 #      Known Bugs:
 #
 # ==============================================================================
+
 
 import base64
 from binascii import hexlify

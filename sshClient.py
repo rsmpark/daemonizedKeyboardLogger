@@ -2,17 +2,17 @@
 
 # ==============================================================================
 #      Assignment:  DPI912 Term Project
-#      File: SSH Server
+#      File: SSH Client
 #
 #      Authors: Sang Min Park, Jacky Tea
 #      Student ID (Sang Min Park): 124218173
 #      Student ID (Jacky Tea): 152078168
 #      Language: Python3
-#      Libraries Used: logzero, paramiko, subprocess, socket
+#      Libraries Used: paramiko, logzero, socket, subprocess
 #
-#      To compile with python3 >>> python3 a1SSHServer.py
-#      To compile with executable >>> chmod 700 a1SSHServer.py
-#                                 >>> ./a1SSHServer.py
+#      To compile with python3 >>> python3 contestUtil.py
+#      To compile with executable >>> chmod 700 contestUtil.py
+#                                 >>> ./contestUtil.py
 #
 #      Class: DPI912 NSB - Python for Programmers: Sockets and Security
 #      Professor: Professor Harvey Kaduri
@@ -24,14 +24,13 @@
 #      Cookbook code utilized from the following source:
 #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
 #
-#      Description: A wrapper class for Paramiko's SSH Client. Contains functions
-#      for client initialization, connection and authentication.
+#      Description: SSH wrapper class for Paramiko's SSH client
 #
 #      Input: No command line or user input necessary.
 #
-#      Output: No output is generated here.
+#      Output: Logging about info and errors to 'sshClient.log'
 #
-#      Algorithm: An SSH instance is created and authenticated with a username and password.
+#      Algorithm: SSH functionality handled by Paramiko
 #
 #      Required Features Not Included:
 #
@@ -46,7 +45,10 @@ import subprocess
 import socket
 
 # Add logging to logfile and disable output to the terminal
-logzero.logfile("/tmp/sshClient.log", maxBytes=1e6,
+# << << << < HEAD
+# logzero.logfile("/tmp/sshClient.log", maxBytes=1e6,
+# == == == =
+logzero.logfile("sshClient.log", maxBytes=1e6,
                 backupCount=3, disableStderrLogger=True)
 
 

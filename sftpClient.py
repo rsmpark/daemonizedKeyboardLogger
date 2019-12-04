@@ -2,17 +2,17 @@
 
 # ==============================================================================
 #      Assignment:  DPI912 Term Project
-#      File: SSH Server
+#      File: SFTP Client
 #
 #      Authors: Sang Min Park, Jacky Tea
 #      Student ID (Sang Min Park): 124218173
 #      Student ID (Jacky Tea): 152078168
 #      Language: Python3
-#      Libraries Used: logzero, paramiko, socket
+#      Libraries Used: paramiko, logzero, socket
 #
-#      To compile with python3 >>> python3 a1SSHServer.py
-#      To compile with executable >>> chmod 700 sftpClient.py
-#                                 >>> sftpClient.py
+#      To compile with python3 >>> python3 contestUtil.py
+#      To compile with executable >>> chmod 700 contestUtil.py
+#                                 >>> ./contestUtil.py
 #
 #      Class: DPI912 NSB - Python for Programmers: Sockets and Security
 #      Professor: Professor Harvey Kaduri
@@ -24,27 +24,27 @@
 #      Cookbook code utilized from the following source:
 #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
 #
-#      Description: A wrapper class for Paramiko's SFTP Client. Contains functions
-#      for client initialization, connection and authentication.
+#      Description: SFTP wrapper class for Paramiko's SFTP client
 #
 #      Input: No command line or user input necessary.
 #
-#      Output: No output is generated here.
+#      Output: None
 #
-#      Algorithm: An SSH instance is created and authenticated with a username and password.
+#      Algorithm: SFTP functionality handled by Paramiko
 #
 #      Required Features Not Included:
 #
 #      Known Bugs:
 #
 # ==============================================================================
+
 import logzero
 from logzero import logger
 import socket
 import paramiko
 
 # Add logging to logfile and disable output to the terminal
-logzero.logfile("/tmp/sshClient.log", maxBytes=1e6,
+logzero.logfile("sshClient.log", maxBytes=1e6,
                 backupCount=3, disableStderrLogger=True)
 
 
