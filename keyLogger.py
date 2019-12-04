@@ -73,7 +73,7 @@ def processTerminator(signalNumber,  functionReference):
 
 # Main
 if len(sys.argv) < 2:
-    print('Incorrect Args! Usage: ./a1KeyLogger.py [start | stop]')
+    print('Incorrect Args! Usage: ./keyLogger.py [start | stop]')
     raise SystemExit('Exit Code: ' + str(1))
 
 # Detect start command
