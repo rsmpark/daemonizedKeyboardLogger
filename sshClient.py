@@ -44,10 +44,6 @@ import paramiko
 import subprocess
 import socket
 
-# Add logging to logfile and disable output to the terminal
-# << << << < HEAD
-# logzero.logfile("/tmp/sshClient.log", maxBytes=1e6,
-# == == == =
 logzero.logfile("sshClient.log", maxBytes=1e6,
                 backupCount=3, disableStderrLogger=True)
 
