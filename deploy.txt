@@ -1,9 +1,4 @@
-Assignment:  Term Project - Malware Prototype - Daemonized Key Logger
-Class:  DPI912 NSB - Python for Programmers: Sockets and Security 
-Professor:  Dr. Harvey Kaduri
 Authors:  Sang Min Park, Jacky Tea 
-Student ID (Sang Min Park): 124218173
-Student ID (Jacky Tea): 152078168
 
 deploy.txt - a file specifying required libraries and instructions to run the malware
 
