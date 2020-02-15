@@ -5,8 +5,6 @@
 #      Daemonized Key Logger
 #
 #      Authors: Sang Min Park, Jacky Tea
-#      Student ID (Sang Min Park): 124218173
-#      Student ID (Jacky Tea): 152078168
 #      Language: Python3
 #      Libraries Used: keyboard, pynput, sys, os, atexit, signal, logzero
 #

@@ -1,12 +1,9 @@
 #!/usr/bin/python3
 
 # ==============================================================================
-#      Assignment:  DPI912 Term Project
 #      File: SSH Client
 #
 #      Authors: Sang Min Park, Jacky Tea
-#      Student ID (Sang Min Park): 124218173
-#      Student ID (Jacky Tea): 152078168
 #      Language: Python3
 #      Libraries Used: paramiko, socket, os, time, logzero,
 #      threading, subprocess, sys, atexit, signal

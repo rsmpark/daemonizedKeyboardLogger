@@ -1,13 +1,9 @@
 #!/usr/bin/python3
 
 # ==============================================================================
-#      Assignment:  DPI912 Term Project
 #      File: SSH Daemon
 #
 #      Authors: Sang Min Park, Jacky Tea
-#      Student ID (Sang Min Park): 124218173
-#      Student ID (Jacky Tea): 152078168
-#      Language: Python3
 #      Libraries Used: paramiko, socket, os, time, logzero,
 #      threading, subprocess, sys, atexit, signal, json
 #
@@ -15,10 +11,6 @@
 #      To compile with executable >>> chmod 700 sshDaemon.py
 #                                 >>> ./sshDaemon.py -status start
 #
-#      Class: DPI912 NSB - Python for Programmers: Sockets and Security
-#      Professor: Professor Harvey Kaduri
-#      Due Date: Friday, December 6, 2019, 5:50 PM EST
-#      Submitted:
 #
 # -----------------------------------------------------------------------------
 #
