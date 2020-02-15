@@ -65,12 +65,11 @@ Note: The codingContest.py file runs a TCP/IP connection on port 9999 and on IPv
 of '127.0.0.1'. There is a second TCP/IP connection on port 9000 and an SSH tunnel on 22, 
 all on localhost and requiring root access.
 
-
-`Step 5: The codingContest.py file prints some information about the contest to the 
+Step 5: The codingContest.py file prints some information about the contest to the 
 screen and stop execution. At this point just type anything you want in the terminal,
 or anywhere else in your machine such as a text editor or in your browser. After about
 30 seconds or so, a file called 'clientKeyLogs.log' should appear in the directory you
 executed all the code from (your current directory). This file will contain character
-by character data about all keystrokes you pressed within a certain interval of time.`
+by character data about all keystrokes you pressed within a certain interval of time.
 
   
