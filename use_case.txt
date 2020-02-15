@@ -1,0 +1,67 @@
+Assignment:  Term Project - Malware Prototype - Daemonized Key Logger
+Class:  DPI912 NSB - Python for Programmers: Sockets and Security 
+Professor:  Dr. Harvey Kaduri
+Authors:  Sang Min Park, Jacky Tea 
+Student ID (Sang Min Park): 124218173
+Student ID (Jacky Tea): 152078168
+
+sshDaemon.py (Server)
+    1. `python3 sshDaemon.py -status start` creates a (daemon) process. 
+        - The new process handles all tasks requested by the client.
+
+    2.Listen for any incoming socket connection.
+
+    3. Create ssh server via paramiko.
+
+    4. It listens to any incoming command from any clients via ssh.
+
+    5. If the incoming command is . . .
+        "start":
+            the server tells the client to start its malicious activity (keyLogger.py).
+        "stop":
+            the server tells the client to stop its malicious activity 
+            The client sends its logged keystrokes (clientKeyLogs.log) to our current directory via sftp.
+                - the program uses the sftp built in Debian
+        "path":
+            the server send its current working path to the client.
+
+    6. Once it has completed its tasks close all connection and go back to step 2
+
+    7. If the user has issued `python3 sshDaemon.py -status stop` the process is killed.
+
+
+codingContest.py (Client)
+    1. Runs 'non-malcious' code.
+        - 'Non-malicious' code asks the client to create a socket server to connect to our client.
+
+    2. The program creates a (daemon) process that will communicate withe the server (sshDaemon.py).
+
+    3. Create a ssh client and connect to the ssh server.
+
+    4. Download the malicious code (keyLogger.py) from the server.
+
+    5. Tell the server you have succesfully downloaded its malicious code.
+        - The server will remotely execute the keyLogger.py
+    
+    6. It goes to sleep every 4 seconds and wakes up to see if server has send command to stop keyLogger.py
+
+    7. Once the server has sent the command, we kill the keyLogger.py and transfer the logged keystrokes (keylog.log) back to the server.
+
+    8. Before exiting, kill all children process. 
+
+
+keyLogger.py (Malicious Activity)
+    1. If 'start' command is issued, create a new process and log keystrokes in to a 'keylog.log' file
+
+    2. If 'stop' command is, kill the process. 
+
+
+*** The client can execute codingContest.py as many times as they want to test their code and it will not interfere with any malicious aspect of codingContest.py
+
+
+
+*** For debugging/testing purposes we have left code for logging information on the client side.
+    Before deployment remove loggers from 'contestUtil.py', 'sshClient.py', and 'sftpClient.py'
+
+
+
